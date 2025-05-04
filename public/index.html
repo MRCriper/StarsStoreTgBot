@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TG Stars Store</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="animate__animated animate__fadeInDown">
+            <div class="logo">
+                <i class="fas fa-star star-icon"></i>
+                <h1>TG Stars Store</h1>
+            </div>
+            <p>Премиум звезды для вашего Telegram аккаунта</p>
+        </header>
+        
+        <main>
+            <!-- Шаг 1: Выбор пакета -->
+            <section id="step-1" class="step active animate__animated animate__fadeIn">
+                <h2 class="section-title"><span class="step-number">1</span> Выберите пакет звезд</h2>
+                
+                <div class="packages-container">
+                    <div class="package" data-stars="10" data-price="12">
+                        <div class="package-header">
+                            <div class="stars-badge">10 ⭐</div>
+                            <h3>Стартовый</h3>
+                        </div>
+                        <div class="package-price">12 ₽</div>
+                        <div class="package-savings">Экономия 20%</div>
+                        <button class="select-package-btn">Выбрать</button>
+                    </div>
+                    
+                    <div class="package popular" data-stars="50" data-price="55">
+                        <div class="popular-badge">Популярный</div>
+                        <div class="package-header">
+                            <div class="stars-badge">50 ⭐</div>
+                            <h3>Стандарт</h3>
+                        </div>
+                        <div class="package-price">55 ₽</div>
+                        <div class="package-savings">Экономия 27%</div>
+                        <button class="select-package-btn">Выбрать</button>
+                    </div>
+                    
+                    <div class="package" data-stars="100" data-price="100">
+                        <div class="package-header">
+                            <div class="stars-badge">100 ⭐</div>
+                            <h3>Премиум</h3>
+                        </div>
+                        <div class="package-price">100 ₽</div>
+                        <div class="package-savings">Экономия 33%</div>
+                        <button class="select-package-btn">Выбрать</button>
+                    </div>
+                </div>
+                
+                <div class="custom-package">
+                    <h3>Свой вариант</h3>
+                    <div class="stars-input">
+                        <button id="decrease"><i class="fas fa-minus"></i></button>
+                        <input type="number" id="stars" min="1" value="1" max="1000">
+                        <button id="increase"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <div class="price-container">
+                        <p>Стоимость: <span id="price">1.5</span> ₽</p>
+                        <small>Цена за 1 звезду: 1.5 ₽</small>
+                    </div>
+                    <button id="custom-package-btn" class="select-package-btn">Продолжить</button>
+                </div>
+                
+                <div class="navigation-buttons">
+                    <button id="to-step-2" class="next-step-btn" disabled>
+                        Продолжить <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Шаг 2: Данные пользователя -->
+            <section id="step-2" class="step animate__animated">
+                <h2 class="section-title"><span class="step-number">2</span> Введите данные</h2>
+                
+                <div class="card">
+                    <div class="order-summary">
+                        <h3>Ваш заказ</h3>
+                        <div class="order-details">
+                            <div class="order-item">
+                                <span>Количество звезд:</span>
+                                <span id="summary-stars">10</span>
+                            </div>
+                            <div class="order-item">
+                                <span>Стоимость:</span>
+                                <span id="summary-price">12 ₽</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-user"></i> Имя пользователя:
+                        </label>
+                        <div class="input-wrapper">
+                            <input type="text" id="username" placeholder="Введите ваш username" autocomplete="off">
+                            <div class="input-icon">@</div>
+                        </div>
+                        <small class="input-hint">Без символа @ в начале</small>
+                    </div>
+                    
+                    <div class="navigation-buttons">
+                        <button id="back-to-step-1" class="back-btn">
+                            <i class="fas fa-arrow-left"></i> Назад
+                        </button>
+                        <button id="buy-button" class="buy-button">
+                            <i class="fas fa-shopping-cart"></i> Оплатить
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="animate__animated animate__fadeInUp">
+            <div class="stars-decoration">
+                <i class="fas fa-star star-1"></i>
+                <i class="fas fa-star star-2"></i>
+                <i class="fas fa-star star-3"></i>
+            </div>
+            <p>© 2025 TG Stars Store</p>
+        </footer>
+    </div>
+    
+    <!-- Лоадер -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader">
+            <div class="star-loader">
+                <i class="fas fa-star"></i>
+            </div>
+            <p>Обработка...</p>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
