@@ -3,88 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG Stars Store</title>
+    <title>Stars Store</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
-<body>
+<body class="space-background">
     <div class="app-container">
         <header class="animate__animated animate__fadeInDown">
             <div class="logo">
-                <i class="fas fa-star star-icon"></i>
-                <h1>TG Stars Store</h1>
+                <img src="logo.jpg" alt="Stars Store Logo" class="logo-img">
+                <h1>Stars Store</h1>
             </div>
-            <p>Премиум звезды для вашего Telegram аккаунта</p>
+            <p>Космические звезды для вашего Telegram аккаунта</p>
         </header>
         
         <main>
-            <!-- Шаг 1: Выбор пакета -->
+            <!-- Шаг 1: Выбор количества звезд -->
             <section id="step-1" class="step active animate__animated animate__fadeIn">
-                <h2 class="section-title"><span class="step-number">1</span> Выберите пакет звезд</h2>
-                
-                <div class="packages-container">
-                    <div class="package" data-stars="10" data-price="12">
-                        <div class="package-header">
-                            <div class="stars-badge">10 ⭐</div>
-                            <h3>Стартовый</h3>
-                        </div>
-                        <div class="package-price">12 ₽</div>
-                        <div class="package-savings">Экономия 20%</div>
-                        <button class="select-package-btn">Выбрать</button>
-                    </div>
-                    
-                    <div class="package popular" data-stars="50" data-price="55">
-                        <div class="popular-badge">Популярный</div>
-                        <div class="package-header">
-                            <div class="stars-badge">50 ⭐</div>
-                            <h3>Стандарт</h3>
-                        </div>
-                        <div class="package-price">55 ₽</div>
-                        <div class="package-savings">Экономия 27%</div>
-                        <button class="select-package-btn">Выбрать</button>
-                    </div>
-                    
-                    <div class="package" data-stars="100" data-price="100">
-                        <div class="package-header">
-                            <div class="stars-badge">100 ⭐</div>
-                            <h3>Премиум</h3>
-                        </div>
-                        <div class="package-price">100 ₽</div>
-                        <div class="package-savings">Экономия 33%</div>
-                        <button class="select-package-btn">Выбрать</button>
-                    </div>
-                </div>
+                <h2 class="section-title"><span class="step-number">1</span> Укажите количество звезд</h2>
                 
                 <div class="custom-package">
-                    <h3>Свой вариант</h3>
+                    <h3>Космические звезды</h3>
                     <div class="stars-input">
                         <button id="decrease"><i class="fas fa-minus"></i></button>
-                        <input type="number" id="stars" min="1" value="1" max="1000">
+                        <input type="number" id="stars" min="50" value="50" max="1000000">
                         <button id="increase"><i class="fas fa-plus"></i></button>
                     </div>
                     <div class="price-container">
                         <p>Стоимость: <span id="price">1.5</span> ₽</p>
-                        <small>Цена за 1 звезду: 1.5 ₽</small>
+                        <small>Цена за 1 космическую звезду: 1.5 ₽</small>
                     </div>
-                    <button id="custom-package-btn" class="select-package-btn">Продолжить</button>
                 </div>
                 
                 <div class="navigation-buttons">
-                    <button id="to-step-2" class="next-step-btn" disabled>
-                        Продолжить <i class="fas fa-arrow-right"></i>
+                    <button id="to-step-2" class="next-step-btn">
+                        Продолжить <i class="fas fa-rocket"></i>
                     </button>
                 </div>
             </section>
             
             <!-- Шаг 2: Данные пользователя -->
             <section id="step-2" class="step animate__animated">
-                <h2 class="section-title"><span class="step-number">2</span> Введите данные</h2>
+                <h2 class="section-title"><span class="step-number">2</span> Введите ваши данные</h2>
                 
                 <div class="card">
                     <div class="order-summary">
-                        <h3>Ваш заказ</h3>
+                        <h3>Ваш космический заказ</h3>
                         <div class="order-details">
                             <div class="order-item">
                                 <span>Количество звезд:</span>
@@ -99,7 +65,7 @@
                     
                     <div class="form-group">
                         <label for="username">
-                            <i class="fas fa-user"></i> Имя пользователя:
+                            <i class="fas fa-user-astronaut"></i> Имя пользователя:
                         </label>
                         <div class="input-wrapper">
                             <input type="text" id="username" placeholder="Введите ваш username" autocomplete="off">
@@ -113,7 +79,7 @@
                             <i class="fas fa-arrow-left"></i> Назад
                         </button>
                         <button id="buy-button" class="buy-button">
-                            <i class="fas fa-shopping-cart"></i> Оплатить
+                            <i class="fas fa-rocket"></i> Оплатить
                         </button>
                     </div>
                 </div>
@@ -125,8 +91,10 @@
                 <i class="fas fa-star star-1"></i>
                 <i class="fas fa-star star-2"></i>
                 <i class="fas fa-star star-3"></i>
+                <i class="fas fa-meteor star-2" style="left: 30%; top: 20px;"></i>
+                <i class="fas fa-rocket star-3" style="left: 70%; top: 15px; transform: rotate(45deg);"></i>
             </div>
-            <p>© 2025 TG Stars Store</p>
+            <p>© 2025 Stars Store</p>
         </footer>
     </div>
     
@@ -134,9 +102,14 @@
     <div class="loader-overlay" id="loader">
         <div class="loader">
             <div class="star-loader">
-                <i class="fas fa-star"></i>
+                <i class="fas fa-rocket rocket-animation"></i>
             </div>
-            <p>Обработка...</p>
+            <p>Подготовка к запуску...</p>
+            <div class="space-animation">
+                <div class="stars"></div>
+                <div class="stars2"></div>
+                <div class="stars3"></div>
+            </div>
         </div>
     </div>
     

@@ -35,7 +35,7 @@ const loader = document.getElementById('loader');
 const PRICE_PER_STAR = 1.5;
 
 // Максимальное количество звезд
-const MAX_STARS = 1000;
+const MAX_STARS = 1000000;
 
 // Текущий выбранный пакет
 let selectedPackage = null;
@@ -49,16 +49,16 @@ function formatPrice(price) {
 
 // Обновление цены для пользовательского пакета
 function updateCustomPrice() {
-    const stars = parseInt(starsInput.value) || 1;
+    const stars = parseInt(starsInput.value) || 50;
     const totalPrice = stars * PRICE_PER_STAR;
     priceElement.textContent = formatPrice(totalPrice).replace(' ₽', '');
     
     // Обновляем состояние кнопок
-    decreaseBtn.disabled = stars <= 1;
+    decreaseBtn.disabled = stars <= 50;
     increaseBtn.disabled = stars >= MAX_STARS;
     
     // Визуальная обратная связь
-    if (stars <= 1) {
+    if (stars <= 50) {
         decreaseBtn.style.opacity = '0.5';
     } else {
         decreaseBtn.style.opacity = '1';
@@ -79,15 +79,15 @@ function updateCustomPrice() {
 
 // Обработчики для кнопок увеличения/уменьшения количества звезд
 decreaseBtn.addEventListener('click', () => {
-    const currentValue = parseInt(starsInput.value) || 1;
-    if (currentValue > 1) {
+    const currentValue = parseInt(starsInput.value) || 50;
+    if (currentValue > 50) {
         starsInput.value = currentValue - 1;
         updateCustomPrice();
     }
 });
 
 increaseBtn.addEventListener('click', () => {
-    const currentValue = parseInt(starsInput.value) || 1;
+    const currentValue = parseInt(starsInput.value) || 50;
     if (currentValue < MAX_STARS) {
         starsInput.value = currentValue + 1;
         updateCustomPrice();
@@ -96,10 +96,10 @@ increaseBtn.addEventListener('click', () => {
 
 // Обработчик изменения значения в поле ввода
 starsInput.addEventListener('input', () => {
-    let value = parseInt(starsInput.value) || 1;
+    let value = parseInt(starsInput.value) || 50;
     
     // Ограничиваем значение
-    if (value < 1) value = 1;
+    if (value < 50) value = 50;
     if (value > MAX_STARS) value = MAX_STARS;
     
     // Обновляем значение в поле ввода
@@ -116,53 +116,15 @@ starsInput.addEventListener('keypress', (e) => {
     }
 });
 
-// Обработчик для выбора пакета
-packages.forEach(packageEl => {
-    packageEl.addEventListener('click', () => {
-        // Удаляем класс selected у всех пакетов
-        packages.forEach(p => p.classList.remove('selected'));
-        
-        // Добавляем класс selected к выбранному пакету
-        packageEl.classList.add('selected');
-        
-        // Получаем данные о пакете
-        selectedStars = parseInt(packageEl.dataset.stars);
-        selectedPrice = parseInt(packageEl.dataset.price);
-        selectedPackage = packageEl;
-        
-        // Обновляем кнопку "Продолжить"
-        toStep2Btn.disabled = false;
-        
-        // Анимация выбора
-        packageEl.classList.add('animate__animated', 'animate__pulse');
-        setTimeout(() => {
-            packageEl.classList.remove('animate__animated', 'animate__pulse');
-        }, 500);
-    });
-});
+// Так как готовые пакеты убраны, этот обработчик больше не нужен
 
-// Обработчик для кнопки "Продолжить" в пользовательском пакете
-customPackageBtn.addEventListener('click', () => {
-    // Удаляем класс selected у всех пакетов
-    packages.forEach(p => p.classList.remove('selected'));
-    
-    // Получаем данные о пользовательском пакете
-    selectedStars = parseInt(starsInput.value) || 1;
-    selectedPrice = selectedStars * PRICE_PER_STAR;
-    selectedPackage = null;
-    
-    // Обновляем кнопку "Продолжить"
-    toStep2Btn.disabled = false;
-    
-    // Анимация выбора
-    customPackageBtn.classList.add('animate__animated', 'animate__pulse');
-    setTimeout(() => {
-        customPackageBtn.classList.remove('animate__animated', 'animate__pulse');
-    }, 500);
-});
 
 // Обработчик для кнопки "Продолжить" к шагу 2
 toStep2Btn.addEventListener('click', () => {
+    // Получаем данные о пользовательском пакете
+    selectedStars = parseInt(starsInput.value) || 50;
+    selectedPrice = selectedStars * PRICE_PER_STAR;
+    
     // Обновляем данные заказа
     summaryStars.textContent = selectedStars + ' ⭐';
     summaryPrice.textContent = formatPrice(selectedPrice);
@@ -246,65 +208,11 @@ buyButton.addEventListener('click', () => {
     }, 1500);
 });
 
-// Обработчик для кнопок выбора пакета
-document.querySelectorAll('.select-package-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Предотвращаем всплытие события
-        
-        // Находим родительский элемент пакета
-        const packageEl = btn.closest('.package');
-        if (packageEl) {
-            // Удаляем класс selected у всех пакетов
-            packages.forEach(p => p.classList.remove('selected'));
-            
-            // Добавляем класс selected к выбранному пакету
-            packageEl.classList.add('selected');
-            
-            // Получаем данные о пакете
-            selectedStars = parseInt(packageEl.dataset.stars);
-            selectedPrice = parseInt(packageEl.dataset.price);
-            selectedPackage = packageEl;
-            
-            // Обновляем кнопку "Продолжить"
-            toStep2Btn.disabled = false;
-            
-            // Анимация выбора
-            packageEl.classList.add('animate__animated', 'animate__pulse');
-            setTimeout(() => {
-                packageEl.classList.remove('animate__animated', 'animate__pulse');
-            }, 500);
-            
-            // Автоматически переходим к шагу 2
-            setTimeout(() => {
-                // Обновляем данные заказа
-                summaryStars.textContent = selectedStars + ' ⭐';
-                summaryPrice.textContent = formatPrice(selectedPrice);
-                
-                // Переключаем шаги
-                step1.classList.remove('active');
-                step1.classList.add('animate__animated', 'animate__fadeOutLeft');
-                
-                // Убедимся, что второй шаг изначально виден для анимации
-                step2.style.display = 'block';
-                step2.style.opacity = '0';
-                
-                setTimeout(() => {
-                    step1.style.display = 'none';
-                    step2.classList.add('active', 'animate__animated', 'animate__fadeInRight');
-                    
-                    // Фокус на поле ввода имени пользователя
-                    setTimeout(() => {
-                        usernameInput.focus();
-                    }, 300);
-                }, 300);
-            }, 500);
-        }
-    });
-});
+// Так как готовые пакеты убраны, этот обработчик больше не нужен
 
 // Добавляем анимации при прокрутке
 function animateOnScroll() {
-    const elements = document.querySelectorAll('.package, .custom-package');
+    const elements = document.querySelectorAll('.custom-package');
     
     elements.forEach((element, index) => {
         setTimeout(() => {
@@ -339,6 +247,9 @@ function init() {
     // Устанавливаем начальное состояние шагов
     step1.classList.add('active');
     step2.style.display = 'none';
+    
+    // Кнопка "Продолжить" всегда активна, так как у нас только кастомный пакет
+    toStep2Btn.disabled = false;
     
     // Анимируем элементы при загрузке
     setTimeout(() => {
