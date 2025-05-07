@@ -14,6 +14,18 @@ tgApp.enableClosingConfirmation();
 tgApp.expand();
 tgApp.ready();
 
+// Определение платформы
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/.test(navigator.userAgent);
+
+// Добавляем класс для определения платформы
+if (isIOS) {
+    document.body.classList.add('ios-platform');
+} else if (isAndroid) {
+    document.body.classList.add('android-platform');
+}
+
 // Получаем элементы DOM
 const usernameInput = document.getElementById('username');
 const starsInput = document.getElementById('stars');
@@ -21,15 +33,25 @@ const decreaseBtn = document.getElementById('decrease');
 const increaseBtn = document.getElementById('increase');
 const priceElement = document.getElementById('price');
 const buyButton = document.getElementById('buy-button');
-const customPackageBtn = document.getElementById('custom-package-btn');
 const toStep2Btn = document.getElementById('to-step-2');
 const backToStep1Btn = document.getElementById('back-to-step-1');
 const step1 = document.getElementById('step-1');
 const step2 = document.getElementById('step-2');
 const summaryStars = document.getElementById('summary-stars');
 const summaryPrice = document.getElementById('summary-price');
-const packages = document.querySelectorAll('.package');
 const loader = document.getElementById('loader');
+
+// Элементы для навигации между страницами
+const pagesContainer = document.querySelector('.pages-container');
+const navArrowLeft = document.querySelector('.nav-arrow-left');
+const navArrowRight = document.querySelector('.nav-arrow-right');
+const referralPage = document.getElementById('referral-page');
+const mainPage = document.getElementById('main-page');
+const exchangePage = document.getElementById('exchange-page');
+const copyReferralBtn = document.getElementById('copy-referral');
+const referralCodeInput = document.getElementById('referral-code');
+const buyStarsBtn = document.querySelector('.buy-stars-btn');
+const sellStarsBtn = document.querySelector('.sell-stars-btn');
 
 // Цена за одну звезду (в рублях)
 const PRICE_PER_STAR = 1.5;
@@ -239,6 +261,126 @@ function animateStars() {
     });
 }
 
+// Текущая страница (0 - Рефералка, 1 - Магазин, 2 - Биржа)
+let currentPage = 1; // По умолчанию показываем страницу магазина
+
+// Функция для переключения страниц
+function goToPage(pageIndex) {
+    // Проверяем границы
+    if (pageIndex < 0) pageIndex = 0;
+    if (pageIndex > 2) pageIndex = 2;
+    
+    // Сохраняем текущую страницу
+    currentPage = pageIndex;
+    
+    // Анимируем переход
+    pagesContainer.style.transform = `translateX(-${currentPage * 33.333}%)`;
+    
+    // Обновляем видимость стрелок
+    updateArrowsVisibility();
+}
+
+// Обновление видимости стрелок в зависимости от текущей страницы
+function updateArrowsVisibility() {
+    // Всегда показываем обе стрелки, но меняем их прозрачность
+    navArrowLeft.style.opacity = currentPage === 0 ? '0.3' : '0.8';
+    navArrowRight.style.opacity = currentPage === 2 ? '0.3' : '0.8';
+    
+    // Отключаем события для крайних стрелок
+    navArrowLeft.style.pointerEvents = currentPage === 0 ? 'none' : 'auto';
+    navArrowRight.style.pointerEvents = currentPage === 2 ? 'none' : 'auto';
+}
+
+// Обработчики для навигационных стрелок
+navArrowLeft.addEventListener('click', () => {
+    if (currentPage > 0) {
+        goToPage(currentPage - 1);
+    }
+});
+
+navArrowRight.addEventListener('click', () => {
+    if (currentPage < 2) {
+        goToPage(currentPage + 1);
+    }
+});
+
+// Инициализация свайпа с помощью Hammer.js
+function initSwipe() {
+    const hammer = new Hammer(pagesContainer);
+    
+    // Настройка распознавания свайпа
+    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
+    
+    // Обработчик свайпа влево (следующая страница)
+    hammer.on('swipeleft', () => {
+        if (currentPage < 2) {
+            goToPage(currentPage + 1);
+        }
+    });
+    
+    // Обработчик свайпа вправо (предыдущая страница)
+    hammer.on('swiperight', () => {
+        if (currentPage > 0) {
+            goToPage(currentPage - 1);
+        }
+    });
+}
+
+// Обработчик для кнопки копирования реферальной ссылки
+if (copyReferralBtn) {
+    copyReferralBtn.addEventListener('click', () => {
+        // Выделяем текст
+        referralCodeInput.select();
+        referralCodeInput.setSelectionRange(0, 99999);
+        
+        // Копируем в буфер обмена
+        navigator.clipboard.writeText(referralCodeInput.value)
+            .then(() => {
+                // Визуальная обратная связь
+                copyReferralBtn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => {
+                    copyReferralBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                }, 2000);
+                
+                // Показываем уведомление
+                tgApp.showPopup({
+                    title: 'Успешно',
+                    message: 'Реферальная ссылка скопирована в буфер обмена',
+                    buttons: [{type: 'ok'}]
+                });
+            })
+            .catch(err => {
+                console.error('Не удалось скопировать: ', err);
+                
+                // Показываем уведомление об ошибке
+                tgApp.showPopup({
+                    title: 'Ошибка',
+                    message: 'Не удалось скопировать ссылку. Пожалуйста, скопируйте вручную.',
+                    buttons: [{type: 'ok'}]
+                });
+            });
+    });
+}
+
+// Обработчики для кнопок на странице биржи
+if (buyStarsBtn) {
+    buyStarsBtn.addEventListener('click', () => {
+        // Переходим на страницу магазина
+        goToPage(1);
+    });
+}
+
+if (sellStarsBtn) {
+    sellStarsBtn.addEventListener('click', () => {
+        // Показываем уведомление
+        tgApp.showPopup({
+            title: 'Скоро',
+            message: 'Функция продажи звезд будет доступна в ближайшее время',
+            buttons: [{type: 'ok'}]
+        });
+    });
+}
+
 // Инициализация
 function init() {
     // Обновляем цену
@@ -250,6 +392,12 @@ function init() {
     
     // Кнопка "Продолжить" всегда активна, так как у нас только кастомный пакет
     toStep2Btn.disabled = false;
+    
+    // Инициализируем свайп
+    initSwipe();
+    
+    // Устанавливаем начальную страницу (магазин)
+    goToPage(1);
     
     // Анимируем элементы при загрузке
     setTimeout(() => {

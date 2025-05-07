@@ -7,7 +7,7 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 // Обработчик команды /start
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  const webAppUrl = `https://42150a8d-14a6-4d03-8420-8a80d6225b8b-00-2wgifpmi2x174.sisko.replit.dev/`;
+  const webAppUrl = `https://4008db5c-30f4-4c1f-9e72-9277a9789452-00-3dj86x3mdpb5x.sisko.replit.dev/`;
   
   // Создаем клавиатуру с кнопкой для открытия Mini App
   const keyboard = {
