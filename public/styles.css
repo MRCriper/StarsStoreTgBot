@@ -577,6 +577,83 @@ input[type="text"]:focus {
     color: var(--tg-theme-hint-color, #a0a0c0);
 }
 
+/* Стили для выпадающего списка контактов */
+.contacts-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 0;
+    overflow-y: auto;
+    background-color: var(--card-bg);
+    border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+    border: 2px solid var(--primary-color);
+    border-top: none;
+    z-index: 10;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    box-shadow: var(--box-shadow);
+    backdrop-filter: blur(10px);
+}
+
+.contacts-dropdown.active {
+    max-height: 200px;
+    opacity: 1;
+}
+
+.contact-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(157, 113, 234, 0.1);
+}
+
+.contact-item:last-child {
+    border-bottom: none;
+}
+
+.contact-item:hover {
+    background-color: rgba(157, 113, 234, 0.15);
+}
+
+.contact-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 12px;
+    background-color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.contact-info {
+    flex: 1;
+}
+
+.contact-name {
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 4px;
+}
+
+.contact-username {
+    font-size: 14px;
+    color: var(--accent-color);
+}
+
+.no-contacts {
+    padding: 16px;
+    text-align: center;
+    color: var(--tg-theme-hint-color);
+    font-style: italic;
+}
+
 /* ===== BUY BUTTON ===== */
 .buy-button {
     padding: 16px 24px;

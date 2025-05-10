@@ -42,6 +42,7 @@ const summaryStars = document.getElementById('summary-stars');
 const summaryPrice = document.getElementById('summary-price');
 const packages = document.querySelectorAll('.package');
 const loader = document.getElementById('loader');
+const contactsDropdown = document.getElementById('contacts-dropdown');
 
 // Цена за одну звезду (в рублях)
 const PRICE_PER_STAR = 1.5;
@@ -360,6 +361,171 @@ function handleSwipe() {
         }
     }
 }
+
+// Функция для получения контактов из Telegram
+async function getContacts() {
+    try {
+        // Проверяем, поддерживает ли Telegram Web App метод getContacts
+        if (tgApp.getContacts) {
+            const contacts = await tgApp.getContacts();
+            return contacts;
+        } else {
+            console.log('Метод getContacts не поддерживается в этой версии Telegram Web App');
+            // Возвращаем тестовые данные для демонстрации
+            return [
+                { first_name: 'Иван', last_name: 'Иванов', username: 'ivanov' },
+                { first_name: 'Петр', last_name: 'Петров', username: 'petrov' },
+                { first_name: 'Анна', last_name: 'Сидорова', username: 'anna_sid' },
+                { first_name: 'Мария', last_name: 'Козлова', username: 'maria_k' },
+                { first_name: 'Алексей', last_name: 'Смирнов', username: 'alex_smirnov' }
+            ];
+        }
+    } catch (error) {
+        console.error('Ошибка при получении контактов:', error);
+        // Возвращаем пустой массив в случае ошибки
+        return [];
+    }
+}
+
+// Функция для отображения выпадающего списка контактов
+async function showContactsDropdown() {
+    // Получаем контакты
+    const contacts = await getContacts();
+    
+    // Очищаем выпадающий список
+    contactsDropdown.innerHTML = '';
+    
+    if (contacts && contacts.length > 0) {
+        // Добавляем контакты в выпадающий список
+        contacts.forEach(contact => {
+            const contactItem = document.createElement('div');
+            contactItem.className = 'contact-item';
+            
+            // Создаем аватар (первая буква имени)
+            const avatar = document.createElement('div');
+            avatar.className = 'contact-avatar';
+            avatar.textContent = (contact.first_name || '?')[0].toUpperCase();
+            
+            // Создаем блок с информацией о контакте
+            const contactInfo = document.createElement('div');
+            contactInfo.className = 'contact-info';
+            
+            // Имя контакта
+            const contactName = document.createElement('div');
+            contactName.className = 'contact-name';
+            contactName.textContent = `${contact.first_name || ''} ${contact.last_name || ''}`.trim();
+            
+            // Username контакта
+            const contactUsername = document.createElement('div');
+            contactUsername.className = 'contact-username';
+            contactUsername.textContent = contact.username ? `@${contact.username}` : '';
+            
+            // Собираем элементы
+            contactInfo.appendChild(contactName);
+            if (contact.username) {
+                contactInfo.appendChild(contactUsername);
+            }
+            
+            contactItem.appendChild(avatar);
+            contactItem.appendChild(contactInfo);
+            
+            // Добавляем обработчик клика
+            contactItem.addEventListener('click', () => {
+                usernameInput.value = contact.username || '';
+                hideContactsDropdown();
+            });
+            
+            contactsDropdown.appendChild(contactItem);
+        });
+    } else {
+        // Если контактов нет, показываем сообщение
+        const noContacts = document.createElement('div');
+        noContacts.className = 'no-contacts';
+        noContacts.textContent = 'Нет доступных контактов';
+        contactsDropdown.appendChild(noContacts);
+    }
+    
+    // Показываем выпадающий список
+    contactsDropdown.classList.add('active');
+    
+    // Добавляем обработчик клика вне выпадающего списка для его скрытия
+    document.addEventListener('click', handleOutsideClick);
+}
+
+// Функция для скрытия выпадающего списка контактов
+function hideContactsDropdown() {
+    contactsDropdown.classList.remove('active');
+    // Удаляем обработчик клика вне выпадающего списка
+    document.removeEventListener('click', handleOutsideClick);
+}
+
+// Обработчик клика вне выпадающего списка
+function handleOutsideClick(event) {
+    // Если клик был не по выпадающему списку и не по полю ввода
+    if (!contactsDropdown.contains(event.target) && event.target !== usernameInput) {
+        hideContactsDropdown();
+    }
+}
+
+// Обработчик фокуса на поле ввода username
+usernameInput.addEventListener('focus', () => {
+    showContactsDropdown();
+});
+
+// Обработчик ввода в поле username для фильтрации контактов
+usernameInput.addEventListener('input', async () => {
+    const searchText = usernameInput.value.toLowerCase();
+    
+    // Если выпадающий список не активен, активируем его
+    if (!contactsDropdown.classList.contains('active')) {
+        showContactsDropdown();
+        return;
+    }
+    
+    // Получаем все элементы контактов
+    const contactItems = contactsDropdown.querySelectorAll('.contact-item');
+    
+    // Если нет элементов, значит список еще не загружен
+    if (contactItems.length === 0) {
+        return;
+    }
+    
+    // Фильтруем контакты
+    let hasVisibleContacts = false;
+    
+    contactItems.forEach(item => {
+        const nameElement = item.querySelector('.contact-name');
+        const usernameElement = item.querySelector('.contact-username');
+        
+        const name = nameElement ? nameElement.textContent.toLowerCase() : '';
+        const username = usernameElement ? usernameElement.textContent.toLowerCase() : '';
+        
+        // Проверяем, содержит ли имя или username введенный текст
+        if (name.includes(searchText) || username.includes(searchText)) {
+            item.style.display = 'flex';
+            hasVisibleContacts = true;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Если нет видимых контактов, показываем сообщение
+    const noContactsElement = contactsDropdown.querySelector('.no-contacts');
+    
+    if (!hasVisibleContacts) {
+        if (!noContactsElement) {
+            const noContacts = document.createElement('div');
+            noContacts.className = 'no-contacts';
+            noContacts.textContent = 'Нет совпадений';
+            contactsDropdown.appendChild(noContacts);
+        } else {
+            noContactsElement.textContent = 'Нет совпадений';
+            noContactsElement.style.display = 'block';
+        }
+    } else if (noContactsElement) {
+        noContactsElement.style.display = 'none';
+    }
+});
 
 // Инициализация
 function init() {
