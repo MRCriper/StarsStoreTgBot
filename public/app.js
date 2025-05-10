@@ -365,86 +365,105 @@ function handleSwipe() {
 // Функция для получения контактов из Telegram
 async function getContacts() {
     try {
-        // Проверяем, поддерживает ли клиент Telegram доступ к контактам
-        if (tgApp.isVersionAtLeast('6.9')) {
+        // Проверяем, есть ли доступ к контактам через Telegram Mini Apps API
+        if (tgApp.contacts && typeof tgApp.contacts.share === 'function') {
             try {
-                // Запрашиваем доступ к контактам пользователя
-                // Сначала запрашиваем разрешение на доступ к телефону
-                const phoneAccessResult = await tgApp.requestPhoneAccess();
-                console.log('Результат запроса доступа к телефону:', phoneAccessResult);
+                // Используем метод contacts.share для получения контактов
+                const result = await tgApp.contacts.share();
+                console.log('Результат share контактов:', result);
                 
-                // Запрашиваем контакт пользователя
-                const contactResult = await tgApp.requestContact();
-                console.log('Результат запроса контакта:', contactResult);
-                
-                // Запрашиваем разрешение на отправку сообщений (для доступа к контактам)
-                const writeAccessResult = await tgApp.requestWriteAccess();
-                console.log('Результат запроса разрешения на отправку сообщений:', writeAccessResult);
-                
-                // Пытаемся получить список контактов через WebApp API
-                // Это экспериментальная функция, которая может быть недоступна
-                if (tgApp.getContacts && typeof tgApp.getContacts === 'function') {
-                    try {
-                        const contacts = await tgApp.getContacts();
-                        console.log('Получены контакты:', contacts);
-                        
-                        if (contacts && Array.isArray(contacts) && contacts.length > 0) {
-                            return contacts.map(contact => ({
-                                first_name: contact.first_name || '',
-                                last_name: contact.last_name || '',
-                                username: contact.username || '',
-                                phone_number: contact.phone_number || ''
-                            }));
-                        }
-                    } catch (contactsError) {
-                        console.error('Ошибка при получении списка контактов:', contactsError);
-                    }
-                } else {
-                    console.log('Метод getContacts недоступен');
-                    
-                    // Если у нас есть доступ к контакту пользователя, добавляем его
-                    if (contactResult && contactResult.contact) {
-                        const userContacts = [];
-                        
-                        // Добавляем контакт пользователя
-                        userContacts.push({
-                            first_name: contactResult.contact.first_name || '',
-                            last_name: contactResult.contact.last_name || '',
-                            username: contactResult.contact.username || '',
-                            phone_number: contactResult.contact.phone_number || ''
-                        });
-                        
-                        // Если есть информация о пользователе в initData, добавляем и её
-                        const user = tgApp.initDataUnsafe?.user;
-                        if (user && user.username && !userContacts.some(c => c.username === user.username)) {
-                            userContacts.push({
-                                first_name: user.first_name || '',
-                                last_name: user.last_name || '',
-                                username: user.username || ''
-                            });
-                        }
-                        
-                        return userContacts;
-                    }
+                if (result && Array.isArray(result)) {
+                    return result.map(contact => ({
+                        first_name: contact.first_name || '',
+                        last_name: contact.last_name || '',
+                        username: contact.username || '',
+                        phone_number: contact.phone_number || ''
+                    }));
                 }
-            } catch (accessError) {
-                console.log('Ошибка при запросе доступа к контактам:', accessError);
+            } catch (shareError) {
+                console.error('Ошибка при получении контактов через share:', shareError);
             }
         }
         
-        // Если не удалось получить контакты или версия не поддерживает,
-        // возвращаем только информацию о текущем пользователе
-        const user = tgApp.initDataUnsafe?.user;
-        if (user) {
-            return [{
-                first_name: user.first_name || '',
-                last_name: user.last_name || '',
-                username: user.username || ''
-            }];
-        } else {
-            console.log('Не удалось получить информацию о пользователе');
-            return [];
+        // Если не удалось получить контакты через contacts.share,
+        // пробуем использовать другие методы
+        
+        // Пробуем использовать метод requestContact, если он доступен
+        if (tgApp.requestContact && typeof tgApp.requestContact === 'function') {
+            try {
+                const contactResult = await tgApp.requestContact();
+                console.log('Результат requestContact:', contactResult);
+                
+                if (contactResult && contactResult.contact) {
+                    return [{
+                        first_name: contactResult.contact.first_name || '',
+                        last_name: contactResult.contact.last_name || '',
+                        username: contactResult.contact.username || '',
+                        phone_number: contactResult.contact.phone_number || ''
+                    }];
+                }
+            } catch (contactError) {
+                console.error('Ошибка при запросе контакта:', contactError);
+            }
         }
+        
+        // Если предыдущие методы не сработали, используем метод showPopup
+        // для предложения пользователю выбрать контакт
+        const selectContactPromise = new Promise((resolve) => {
+            // Создаем кнопку для выбора контакта
+            const selectContactButton = document.createElement('button');
+            selectContactButton.textContent = 'Выбрать контакт';
+            selectContactButton.className = 'select-contact-btn';
+            selectContactButton.addEventListener('click', () => {
+                // Показываем всплывающее окно с просьбой выбрать контакт
+                tgApp.showPopup({
+                    title: 'Выберите контакт',
+                    message: 'Пожалуйста, выберите контакт из вашего списка контактов',
+                    buttons: [
+                        {type: 'default', text: 'Выбрать', id: 'select'},
+                        {type: 'cancel', text: 'Отмена'}
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'select') {
+                        // Здесь мы могли бы открыть выбор контакта, но это не поддерживается напрямую
+                        // Вместо этого, мы просто возвращаем текущего пользователя
+                        const user = tgApp.initDataUnsafe?.user;
+                        if (user) {
+                            resolve([{
+                                first_name: user.first_name || '',
+                                last_name: user.last_name || '',
+                                username: user.username || ''
+                            }]);
+                        } else {
+                            resolve([]);
+                        }
+                    } else {
+                        // Если пользователь отменил выбор, возвращаем пустой массив
+                        resolve([]);
+                    }
+                });
+            });
+            
+            // Добавляем кнопку в DOM
+            const inputWrapper = document.querySelector('.input-wrapper');
+            if (inputWrapper && !document.querySelector('.select-contact-btn')) {
+                inputWrapper.appendChild(selectContactButton);
+            }
+            
+            // Если пользователь не нажал на кнопку, возвращаем текущего пользователя
+            const user = tgApp.initDataUnsafe?.user;
+            if (user) {
+                resolve([{
+                    first_name: user.first_name || '',
+                    last_name: user.last_name || '',
+                    username: user.username || ''
+                }]);
+            } else {
+                resolve([]);
+            }
+        });
+        
+        return await selectContactPromise;
     } catch (error) {
         console.error('Ошибка при получении контактов:', error);
         // Возвращаем пустой массив в случае ошибки
