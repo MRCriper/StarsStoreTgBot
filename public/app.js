@@ -365,109 +365,56 @@ function handleSwipe() {
 // Функция для получения контактов из Telegram
 async function getContacts() {
     try {
-        // Проверяем доступность API для выбора контактов
-        if (tgApp.isVersionAtLeast('6.9') && typeof tgApp.showScanQrPopup === 'function') {
-            try {
+        // Получаем данные текущего пользователя из Telegram
+        const user = tgApp.initDataUnsafe?.user;
+        const contacts = [];
+        
+        // Добавляем текущего пользователя в список контактов, если данные доступны
+        if (user) {
+            contacts.push({
+                first_name: user.first_name || '',
+                last_name: user.last_name || '',
+                username: user.username || '',
+                phone_number: ''
+            });
+        }
+        
+        // Пытаемся получить контакт через API Telegram
+        try {
+            // Проверяем, доступен ли метод requestContact
+            if (tgApp.version && parseFloat(tgApp.version) >= 6.9) {
                 // Используем метод requestContact для получения контакта
-                // Этот метод открывает нативный интерфейс выбора контакта
                 const result = await tgApp.requestContact();
-                console.log('Результат requestContact:', result);
                 
                 if (result && result.contact) {
-                    // Возвращаем массив с одним выбранным контактом
-                    return [{
+                    // Добавляем полученный контакт в список
+                    contacts.push({
                         first_name: result.contact.first_name || '',
                         last_name: result.contact.last_name || '',
                         username: result.contact.username || '',
                         phone_number: result.contact.phone_number || ''
-                    }];
-                }
-            } catch (contactError) {
-                console.error('Ошибка при запросе контакта:', contactError);
-            }
-        }
-        
-        // Если не удалось получить контакты через requestContact,
-        // используем метод для получения всех контактов
-        if (tgApp.isVersionAtLeast('6.9')) {
-            try {
-                // Используем метод getContacts для получения всех контактов
-                // Этот метод доступен в новых версиях Telegram
-                const contacts = await new Promise((resolve) => {
-                    tgApp.showPopup({
-                        title: 'Выбор контакта',
-                        message: 'Пожалуйста, разрешите доступ к контактам для выбора получателя',
-                        buttons: [
-                            {type: 'default', text: 'Разрешить', id: 'allow'},
-                            {type: 'cancel', text: 'Отмена'}
-                        ]
-                    }, (buttonId) => {
-                        if (buttonId === 'allow') {
-                            // Имитируем получение контактов из Telegram
-                            // В реальном приложении здесь будет вызов API Telegram
-                            const mockContacts = [
-                                {
-                                    first_name: 'Иван',
-                                    last_name: 'Иванов',
-                                    username: 'ivanov',
-                                    phone_number: '+79001234567'
-                                },
-                                {
-                                    first_name: 'Петр',
-                                    last_name: 'Петров',
-                                    username: 'petrov',
-                                    phone_number: '+79009876543'
-                                },
-                                {
-                                    first_name: 'Анна',
-                                    last_name: 'Сидорова',
-                                    username: 'anna_sid',
-                                    phone_number: '+79005556677'
-                                },
-                                {
-                                    first_name: 'Мария',
-                                    last_name: 'Кузнецова',
-                                    username: 'maria_k',
-                                    phone_number: '+79003332211'
-                                }
-                            ];
-                            
-                            // Добавляем текущего пользователя в список контактов
-                            const user = tgApp.initDataUnsafe?.user;
-                            if (user) {
-                                mockContacts.push({
-                                    first_name: user.first_name || '',
-                                    last_name: user.last_name || '',
-                                    username: user.username || '',
-                                    phone_number: ''
-                                });
-                            }
-                            
-                            resolve(mockContacts);
-                        } else {
-                            // Если пользователь отменил выбор, возвращаем только текущего пользователя
-                            const user = tgApp.initDataUnsafe?.user;
-                            if (user) {
-                                resolve([{
-                                    first_name: user.first_name || '',
-                                    last_name: user.last_name || '',
-                                    username: user.username || '',
-                                    phone_number: ''
-                                }]);
-                            } else {
-                                resolve([]);
-                            }
-                        }
                     });
-                });
-                
-                return contacts;
-            } catch (error) {
-                console.error('Ошибка при получении всех контактов:', error);
+                }
             }
+        } catch (contactError) {
+            console.log('Не удалось получить контакт через requestContact:', contactError);
         }
         
-        // Если все методы не сработали, возвращаем только текущего пользователя
+        // Если не удалось получить контакты через API или список пуст, добавляем текущего пользователя
+        if (contacts.length === 0 && user) {
+            contacts.push({
+                first_name: user.first_name || '',
+                last_name: user.last_name || '',
+                username: user.username || '',
+                phone_number: ''
+            });
+        }
+        
+        return contacts;
+    } catch (error) {
+        console.error('Ошибка при получении контактов:', error);
+        
+        // В случае ошибки возвращаем массив с текущим пользователем, если данные доступны
         const user = tgApp.initDataUnsafe?.user;
         if (user) {
             return [{
@@ -476,12 +423,9 @@ async function getContacts() {
                 username: user.username || '',
                 phone_number: ''
             }];
-        } else {
-            return [];
         }
-    } catch (error) {
-        console.error('Ошибка при получении контактов:', error);
-        // Возвращаем пустой массив в случае ошибки
+        
+        // Если данные пользователя недоступны, возвращаем пустой массив
         return [];
     }
 }
