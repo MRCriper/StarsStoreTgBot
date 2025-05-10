@@ -647,11 +647,61 @@ input[type="text"]:focus {
     color: var(--accent-color);
 }
 
+.contact-phone {
+    font-size: 13px;
+    color: var(--tg-theme-hint-color);
+    margin-top: 2px;
+}
+
 .no-contacts {
     padding: 16px;
     text-align: center;
     color: var(--tg-theme-hint-color);
     font-style: italic;
+}
+
+.loading-contacts {
+    padding: 16px;
+    text-align: center;
+    color: var(--tg-theme-hint-color);
+    position: relative;
+}
+
+.loading-contacts::after {
+    content: '...';
+    position: absolute;
+    animation: loading-dots 1.5s infinite;
+}
+
+@keyframes loading-dots {
+    0% { content: '.'; }
+    33% { content: '..'; }
+    66% { content: '...'; }
+    100% { content: '.'; }
+}
+
+.select-contact-btn {
+    padding: 12px 16px;
+    text-align: center;
+    background-color: rgba(157, 113, 234, 0.15);
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-top: 1px solid rgba(157, 113, 234, 0.1);
+    font-weight: 600;
+}
+
+.select-contact-btn:hover {
+    background-color: rgba(157, 113, 234, 0.25);
+}
+
+.select-contact-btn i {
+    margin-right: 8px;
+}
+
+.contact-item.selected {
+    background-color: rgba(157, 113, 234, 0.3);
+    transition: background-color 0.3s ease;
 }
 
 /* ===== BUY BUTTON ===== */
