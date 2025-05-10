@@ -2,104 +2,30 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="format-detection" content="telephone=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stars Store</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 </head>
 <body class="space-background">
-    <!-- Навигационные стрелки -->
-    <div class="nav-arrows">
-        <div class="nav-arrow nav-arrow-left">
+    <!-- Навигационные стрелки для свайпа -->
+    <div class="swipe-navigation left-nav">
+        <div class="nav-arrow">
             <i class="fas fa-chevron-left"></i>
-            <span>Рефералка</span>
         </div>
-        <div class="nav-arrow nav-arrow-right">
-            <span>Биржа</span>
-            <i class="fas fa-chevron-right"></i>
-        </div>
+        <div class="nav-label">Рефералка</div>
     </div>
     
-    <div class="pages-container">
-        <!-- Страница "Рефералка" -->
-        <div class="app-container page" id="referral-page">
-            <header class="animate__animated animate__fadeInDown">
-                <div class="logo">
-                    <img src="logo.jpg" alt="Stars Store Logo" class="logo-img">
-                    <h1>Рефералка</h1>
-                </div>
-                <p>Приглашайте друзей и получайте бонусы</p>
-            </header>
-            
-            <main>
-                <section class="step active animate__animated animate__fadeIn">
-                    <h2 class="section-title"><i class="fas fa-users"></i> Реферальная программа</h2>
-                    
-                    <div class="custom-package">
-                        <h3>Ваша реферальная ссылка</h3>
-                        <div class="referral-link">
-                            <input type="text" id="referral-code" value="https://t.me/StarsStoreBot?start=ref123456" readonly>
-                            <button id="copy-referral"><i class="fas fa-copy"></i></button>
-                        </div>
-                        <div class="referral-stats">
-                            <div class="stat-item">
-                                <span class="stat-label">Приглашено друзей:</span>
-                                <span class="stat-value">0</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-label">Заработано звезд:</span>
-                                <span class="stat-value">0 ⭐</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="custom-package">
-                        <h3>Как это работает</h3>
-                        <div class="referral-steps">
-                            <div class="ref-step">
-                                <div class="ref-step-icon"><i class="fas fa-share-alt"></i></div>
-                                <div class="ref-step-text">
-                                    <h4>Шаг 1</h4>
-                                    <p>Поделитесь своей реферальной ссылкой с друзьями</p>
-                                </div>
-                            </div>
-                            <div class="ref-step">
-                                <div class="ref-step-icon"><i class="fas fa-user-plus"></i></div>
-                                <div class="ref-step-text">
-                                    <h4>Шаг 2</h4>
-                                    <p>Друзья регистрируются по вашей ссылке</p>
-                                </div>
-                            </div>
-                            <div class="ref-step">
-                                <div class="ref-step-icon"><i class="fas fa-star"></i></div>
-                                <div class="ref-step-text">
-                                    <h4>Шаг 3</h4>
-                                    <p>Получайте 10% от каждой их покупки в звездах</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </main>
-            
-            <footer class="animate__animated animate__fadeInUp">
-                <div class="stars-decoration">
-                    <i class="fas fa-star star-1"></i>
-                    <i class="fas fa-star star-2"></i>
-                    <i class="fas fa-star star-3"></i>
-                </div>
-                <p>© 2025 Stars Store</p>
-            </footer>
+    <div class="swipe-navigation right-nav">
+        <div class="nav-arrow">
+            <i class="fas fa-chevron-right"></i>
         </div>
-        
-        <!-- Основная страница магазина -->
-        <div class="app-container page" id="main-page">
+        <div class="nav-label">Биржа</div>
+    </div>
+    
+    <div class="app-container">
         <header class="animate__animated animate__fadeInDown">
             <div class="logo">
                 <img src="logo.jpg" alt="Stars Store Logo" class="logo-img">
@@ -185,76 +111,6 @@
             </div>
             <p>© 2025 Stars Store</p>
         </footer>
-        </div>
-        
-        <!-- Страница "Биржа" -->
-        <div class="app-container page" id="exchange-page">
-            <header class="animate__animated animate__fadeInDown">
-                <div class="logo">
-                    <img src="logo.jpg" alt="Stars Store Logo" class="logo-img">
-                    <h1>Биржа</h1>
-                </div>
-                <p>Торгуйте звездами и зарабатывайте</p>
-            </header>
-            
-            <main>
-                <section class="step active animate__animated animate__fadeIn">
-                    <h2 class="section-title"><i class="fas fa-exchange-alt"></i> Биржа звезд</h2>
-                    
-                    <div class="custom-package">
-                        <h3>Текущий курс</h3>
-                        <div class="exchange-rate">
-                            <div class="rate-item">
-                                <div class="rate-icon"><i class="fas fa-star"></i></div>
-                                <div class="rate-value">1 ⭐ = 1.5 ₽</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="custom-package">
-                        <h3>Ваш баланс</h3>
-                        <div class="balance-info">
-                            <div class="balance-item">
-                                <span class="balance-label">Звезды:</span>
-                                <span class="balance-value">0 ⭐</span>
-                            </div>
-                            <div class="balance-item">
-                                <span class="balance-label">Рубли:</span>
-                                <span class="balance-value">0 ₽</span>
-                            </div>
-                        </div>
-                        
-                        <div class="exchange-actions">
-                            <button class="exchange-btn buy-stars-btn">
-                                <i class="fas fa-shopping-cart"></i> Купить звезды
-                            </button>
-                            <button class="exchange-btn sell-stars-btn">
-                                <i class="fas fa-money-bill-wave"></i> Продать звезды
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="custom-package">
-                        <h3>История транзакций</h3>
-                        <div class="transactions-list">
-                            <div class="empty-transactions">
-                                <i class="fas fa-history"></i>
-                                <p>У вас пока нет транзакций</p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </main>
-            
-            <footer class="animate__animated animate__fadeInUp">
-                <div class="stars-decoration">
-                    <i class="fas fa-star star-1"></i>
-                    <i class="fas fa-star star-2"></i>
-                    <i class="fas fa-star star-3"></i>
-                </div>
-                <p>© 2025 Stars Store</p>
-            </footer>
-        </div>
     </div>
     
     <!-- Лоадер -->

@@ -23,18 +23,14 @@
     --card-bg: rgba(20, 20, 50, 0.7);
     --card-border: rgba(255, 255, 255, 0.1);
     --text-glow: 0 0 10px rgba(255, 255, 255, 0.7);
-    --safe-area-inset-top: env(safe-area-inset-top, 0px);
-    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-area-inset-left: env(safe-area-inset-left, 0px);
-    --safe-area-inset-right: env(safe-area-inset-right, 0px);
+    --swipe-nav-width: 60px;
+    --swipe-nav-opacity: 0.8;
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
 }
 
 body {
@@ -45,11 +41,6 @@ body {
     overflow-x: hidden;
     min-height: 100vh;
     position: relative;
-    padding-top: var(--safe-area-inset-top);
-    padding-bottom: var(--safe-area-inset-bottom);
-    padding-left: var(--safe-area-inset-left);
-    padding-right: var(--safe-area-inset-right);
-    touch-action: pan-y;
 }
 
 .space-background {
@@ -118,26 +109,6 @@ body::after {
     pointer-events: none;
 }
 
-/* ===== PAGES CONTAINER & NAVIGATION ===== */
-.pages-container {
-    display: flex;
-    width: 300%;
-    transition: transform 0.3s ease-out;
-    position: relative;
-    touch-action: pan-x;
-}
-
-.page {
-    width: 33.333%;
-    flex-shrink: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    position: relative;
-    height: 100vh;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-}
-
 .app-container {
     max-width: 600px;
     margin: 0 auto;
@@ -145,77 +116,6 @@ body::after {
     padding-bottom: 80px;
     position: relative;
     z-index: 1;
-}
-
-/* Навигационные стрелки */
-.nav-arrows {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 10;
-}
-
-.nav-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(20, 20, 50, 0.7);
-    color: var(--tg-theme-text-color, #ffffff);
-    padding: 15px 10px;
-    border-radius: var(--border-radius-sm);
-    display: flex;
-    align-items: center;
-    backdrop-filter: blur(5px);
-    border: 1px solid var(--card-border);
-    box-shadow: var(--box-shadow);
-    opacity: 0.8;
-    transition: var(--transition);
-    pointer-events: auto;
-    cursor: pointer;
-}
-
-.nav-arrow:hover {
-    opacity: 1;
-    transform: translateY(-50%) scale(1.05);
-}
-
-.nav-arrow-left {
-    left: 10px;
-    padding-right: 15px;
-}
-
-.nav-arrow-right {
-    right: 10px;
-    padding-left: 15px;
-}
-
-.nav-arrow i {
-    font-size: 18px;
-}
-
-.nav-arrow span {
-    margin: 0 8px;
-    font-weight: 600;
-    font-size: 14px;
-}
-
-/* iOS специфичные стили */
-@supports (-webkit-touch-callout: none) {
-    body {
-        /* iOS-специфичные стили */
-        cursor: default;
-    }
-    
-    input, button {
-        font-size: 16px; /* Предотвращает масштабирование при фокусе на iOS */
-    }
-    
-    .nav-arrow {
-        padding: 18px 12px; /* Увеличенная область касания для iOS */
-    }
 }
 
 /* ===== HEADER ===== */
@@ -949,229 +849,142 @@ footer::before {
     100% { background-position: 0 1000px; }
 }
 
-/* ===== РЕФЕРАЛЬНАЯ ПРОГРАММА ===== */
-.referral-link {
+/* ===== НАВИГАЦИОННЫЕ СТРЕЛКИ ДЛЯ СВАЙПА ===== */
+.swipe-navigation {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--swipe-nav-width);
+    height: 120px;
     display: flex;
-    margin: 20px 0;
-}
-
-.referral-link input {
-    flex: 1;
-    padding: 14px;
-    border: 2px solid rgba(157, 113, 234, 0.3);
-    border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
-    font-size: 14px;
-    background-color: rgba(20, 20, 50, 0.5);
-    color: var(--tg-theme-text-color, #ffffff);
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
-}
-
-.referral-link button {
-    width: 50px;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: white;
-    border: none;
-    border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(20, 20, 50, 0.6);
+    backdrop-filter: blur(5px);
+    border-radius: var(--border-radius);
+    z-index: 100;
+    opacity: var(--swipe-nav-opacity);
+    transition: opacity 0.3s, transform 0.3s;
     cursor: pointer;
-    transition: var(--transition);
-}
-
-.referral-link button:hover {
-    background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
-}
-
-.referral-stats {
-    background-color: rgba(157, 113, 234, 0.15);
-    border-radius: var(--border-radius-sm);
-    padding: 16px;
-    margin-top: 20px;
-}
-
-.stat-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-.stat-item:last-child {
-    margin-bottom: 0;
-}
-
-.stat-label {
-    font-weight: 600;
-}
-
-.stat-value {
-    color: var(--accent-color);
-    font-weight: 700;
-}
-
-.referral-steps {
-    margin-top: 20px;
-}
-
-.ref-step {
-    display: flex;
-    margin-bottom: 20px;
-    background-color: rgba(157, 113, 234, 0.1);
-    border-radius: var(--border-radius-sm);
-    padding: 15px;
-    transition: var(--transition);
-}
-
-.ref-step:hover {
-    background-color: rgba(157, 113, 234, 0.2);
-    transform: translateY(-3px);
-}
-
-.ref-step-icon {
-    width: 50px;
-    height: 50px;
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 15px;
-    flex-shrink: 0;
-}
-
-.ref-step-icon i {
-    font-size: 20px;
-    color: white;
-}
-
-.ref-step-text h4 {
-    font-size: 18px;
-    margin-bottom: 5px;
-    color: var(--primary-light);
-}
-
-.ref-step-text p {
-    font-size: 14px;
-    color: var(--tg-theme-hint-color, #a0a0c0);
-}
-
-/* ===== БИРЖА ЗВЕЗД ===== */
-.exchange-rate {
-    padding: 20px;
-    text-align: center;
-}
-
-.rate-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(157, 113, 234, 0.15);
-    border-radius: var(--border-radius-sm);
-    padding: 15px;
-}
-
-.rate-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 15px;
-}
-
-.rate-icon i {
-    font-size: 18px;
-    color: white;
-}
-
-.rate-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--accent-color);
-}
-
-.balance-info {
-    margin: 20px 0;
-}
-
-.balance-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.balance-item:last-child {
-    margin-bottom: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-}
-
-.balance-label {
-    font-weight: 600;
-}
-
-.balance-value {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--accent-color);
-}
-
-.exchange-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.exchange-btn {
-    flex: 1;
-    padding: 14px;
-    border: none;
-    border-radius: var(--border-radius-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.buy-stars-btn {
-    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
-    color: white;
-}
-
-.sell-stars-btn {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--tg-theme-text-color, #ffffff);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.exchange-btn i {
-    margin-right: 8px;
-}
-
-.exchange-btn:hover {
-    transform: translateY(-3px);
     box-shadow: var(--box-shadow);
+    border: 1px solid var(--card-border);
 }
 
-.transactions-list {
-    min-height: 150px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.swipe-navigation:hover {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
 }
 
-.empty-transactions {
-    text-align: center;
-    color: var(--tg-theme-hint-color, #a0a0c0);
+.left-nav {
+    left: 0;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    border-left: none;
 }
 
-.empty-transactions i {
-    font-size: 40px;
+.right-nav {
+    right: 0;
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+    border-right: none;
+}
+
+.nav-arrow {
+    font-size: 24px;
+    color: var(--primary-light);
     margin-bottom: 10px;
-    opacity: 0.5;
+    filter: drop-shadow(0 0 5px rgba(157, 113, 234, 0.5));
+    animation: pulse-arrow 2s infinite;
+}
+
+@keyframes pulse-arrow {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.2); opacity: 1; }
+}
+
+.nav-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tg-theme-text-color);
+    text-align: center;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.left-nav .nav-label {
+    transform: rotate(180deg);
+}
+
+.right-nav .nav-label {
+    transform: rotate(180deg);
+}
+
+/* ===== КРОСС-ПЛАТФОРМЕННАЯ ПОДДЕРЖКА ===== */
+
+/* Специфические стили для iOS */
+@supports (-webkit-touch-callout: none) {
+    /* iOS-специфичные стили */
+    body {
+        /* Исправление проблем с высотой на iOS */
+        min-height: -webkit-fill-available;
+    }
+    
+    .app-container {
+        /* Исправление отступов на iOS */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
+        padding-left: calc(env(safe-area-inset-left) + var(--spacing));
+        padding-right: calc(env(safe-area-inset-right) + var(--spacing));
+    }
+    
+    /* Исправление проблем с фиксированными элементами на iOS */
+    .swipe-navigation {
+        position: absolute;
+    }
+    
+    .left-nav {
+        left: env(safe-area-inset-left);
+    }
+    
+    .right-nav {
+        right: env(safe-area-inset-right);
+    }
+    
+    /* Исправление проблем с backdrop-filter на iOS */
+    .custom-package, .card, .loader, .swipe-navigation {
+        -webkit-backdrop-filter: blur(10px);
+    }
+    
+    /* Исправление проблем с градиентами на iOS */
+    .custom-package h3 {
+        -webkit-text-fill-color: transparent;
+    }
+    
+    /* Исправление проблем с анимациями на iOS */
+    @supports (-webkit-overflow-scrolling: touch) {
+        .logo img, .star-1, .star-2, .star-3 {
+            animation-duration: 3s; /* Уменьшаем длительность анимаций для iOS */
+        }
+    }
+    
+    /* Исправление проблем с input на iOS */
+    input {
+        -webkit-appearance: none;
+        border-radius: var(--border-radius-sm);
+    }
+}
+
+/* Специфические стили для Android */
+@supports not (-webkit-touch-callout: none) {
+    /* Android-специфичные стили */
+    body {
+        overflow-y: auto;
+    }
+    
+    /* Улучшение отзывчивости касаний на Android */
+    button, .swipe-navigation {
+        touch-action: manipulation;
+    }
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
@@ -1197,44 +1010,30 @@ footer::before {
         font-size: 16px;
     }
     
-    .nav-arrow span {
-        display: none; /* Скрываем текст на маленьких экранах */
+    /* Уменьшаем размер навигационных стрелок на маленьких экранах */
+    .swipe-navigation {
+        width: calc(var(--swipe-nav-width) * 0.8);
+        height: 100px;
     }
     
     .nav-arrow {
-        padding: 12px;
+        font-size: 20px;
     }
     
-    .nav-arrow-left {
-        left: 5px;
-    }
-    
-    .nav-arrow-right {
-        right: 5px;
-    }
-    
-    .exchange-actions {
-        flex-direction: column;
+    .nav-label {
+        font-size: 12px;
     }
 }
 
-/* Стили для iOS */
-@supports (-webkit-touch-callout: none) {
-    .app-container {
-        padding-top: max(var(--spacing), env(safe-area-inset-top));
-        padding-bottom: max(80px, env(safe-area-inset-bottom) + 20px);
-        padding-left: max(var(--spacing), env(safe-area-inset-left));
-        padding-right: max(var(--spacing), env(safe-area-inset-right));
+/* Поддержка темной/светлой темы Telegram */
+@media (prefers-color-scheme: dark) {
+    body {
+        color-scheme: dark;
     }
-    
-    input[type="text"], input[type="number"] {
-        -webkit-appearance: none;
-        appearance: none;
-        border-radius: var(--border-radius-sm);
-    }
-    
-    .nav-arrow {
-        padding-top: 18px;
-        padding-bottom: 18px;
+}
+
+@media (prefers-color-scheme: light) {
+    body {
+        color-scheme: light;
     }
 }

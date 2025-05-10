@@ -9,11 +9,6 @@ document.documentElement.style.setProperty('--tg-theme-link-color', tgApp.linkCo
 document.documentElement.style.setProperty('--tg-theme-button-color', tgApp.buttonColor);
 document.documentElement.style.setProperty('--tg-theme-button-text-color', tgApp.buttonTextColor);
 
-// Настройка Telegram Web App
-tgApp.enableClosingConfirmation();
-tgApp.expand();
-tgApp.ready();
-
 // Определение платформы
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -26,6 +21,11 @@ if (isIOS) {
     document.body.classList.add('android-platform');
 }
 
+// Настройка Telegram Web App
+tgApp.enableClosingConfirmation();
+tgApp.expand();
+tgApp.ready();
+
 // Получаем элементы DOM
 const usernameInput = document.getElementById('username');
 const starsInput = document.getElementById('stars');
@@ -33,25 +33,15 @@ const decreaseBtn = document.getElementById('decrease');
 const increaseBtn = document.getElementById('increase');
 const priceElement = document.getElementById('price');
 const buyButton = document.getElementById('buy-button');
+const customPackageBtn = document.getElementById('custom-package-btn');
 const toStep2Btn = document.getElementById('to-step-2');
 const backToStep1Btn = document.getElementById('back-to-step-1');
 const step1 = document.getElementById('step-1');
 const step2 = document.getElementById('step-2');
 const summaryStars = document.getElementById('summary-stars');
 const summaryPrice = document.getElementById('summary-price');
+const packages = document.querySelectorAll('.package');
 const loader = document.getElementById('loader');
-
-// Элементы для навигации между страницами
-const pagesContainer = document.querySelector('.pages-container');
-const navArrowLeft = document.querySelector('.nav-arrow-left');
-const navArrowRight = document.querySelector('.nav-arrow-right');
-const referralPage = document.getElementById('referral-page');
-const mainPage = document.getElementById('main-page');
-const exchangePage = document.getElementById('exchange-page');
-const copyReferralBtn = document.getElementById('copy-referral');
-const referralCodeInput = document.getElementById('referral-code');
-const buyStarsBtn = document.querySelector('.buy-stars-btn');
-const sellStarsBtn = document.querySelector('.sell-stars-btn');
 
 // Цена за одну звезду (в рублях)
 const PRICE_PER_STAR = 1.5;
@@ -261,124 +251,114 @@ function animateStars() {
     });
 }
 
-// Текущая страница (0 - Рефералка, 1 - Магазин, 2 - Биржа)
-let currentPage = 1; // По умолчанию показываем страницу магазина
+// Навигация свайпом между страницами
+const leftNav = document.querySelector('.left-nav');
+const rightNav = document.querySelector('.right-nav');
+const appContainer = document.querySelector('.app-container');
 
-// Функция для переключения страниц
-function goToPage(pageIndex) {
-    // Проверяем границы
-    if (pageIndex < 0) pageIndex = 0;
-    if (pageIndex > 2) pageIndex = 2;
-    
-    // Сохраняем текущую страницу
-    currentPage = pageIndex;
-    
-    // Анимируем переход
-    pagesContainer.style.transform = `translateX(-${currentPage * 33.333}%)`;
-    
-    // Обновляем видимость стрелок
-    updateArrowsVisibility();
-}
-
-// Обновление видимости стрелок в зависимости от текущей страницы
-function updateArrowsVisibility() {
-    // Всегда показываем обе стрелки, но меняем их прозрачность
-    navArrowLeft.style.opacity = currentPage === 0 ? '0.3' : '0.8';
-    navArrowRight.style.opacity = currentPage === 2 ? '0.3' : '0.8';
-    
-    // Отключаем события для крайних стрелок
-    navArrowLeft.style.pointerEvents = currentPage === 0 ? 'none' : 'auto';
-    navArrowRight.style.pointerEvents = currentPage === 2 ? 'none' : 'auto';
-}
+// Текущая страница (0 - магазин, -1 - рефералка, 1 - биржа)
+let currentPage = 0;
 
 // Обработчики для навигационных стрелок
-navArrowLeft.addEventListener('click', () => {
-    if (currentPage > 0) {
-        goToPage(currentPage - 1);
-    }
+leftNav.addEventListener('click', () => {
+    navigateToPage(-1); // Переход на страницу "Рефералка"
 });
 
-navArrowRight.addEventListener('click', () => {
-    if (currentPage < 2) {
-        goToPage(currentPage + 1);
-    }
+rightNav.addEventListener('click', () => {
+    navigateToPage(1); // Переход на страницу "Биржа"
 });
 
-// Инициализация свайпа с помощью Hammer.js
-function initSwipe() {
-    const hammer = new Hammer(pagesContainer);
+// Функция для навигации между страницами
+function navigateToPage(pageIndex) {
+    // Если пытаемся перейти на текущую страницу, ничего не делаем
+    if (pageIndex === currentPage) return;
     
-    // Настройка распознавания свайпа
-    hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
-    
-    // Обработчик свайпа влево (следующая страница)
-    hammer.on('swipeleft', () => {
-        if (currentPage < 2) {
-            goToPage(currentPage + 1);
-        }
-    });
-    
-    // Обработчик свайпа вправо (предыдущая страница)
-    hammer.on('swiperight', () => {
-        if (currentPage > 0) {
-            goToPage(currentPage - 1);
-        }
-    });
-}
-
-// Обработчик для кнопки копирования реферальной ссылки
-if (copyReferralBtn) {
-    copyReferralBtn.addEventListener('click', () => {
-        // Выделяем текст
-        referralCodeInput.select();
-        referralCodeInput.setSelectionRange(0, 99999);
-        
-        // Копируем в буфер обмена
-        navigator.clipboard.writeText(referralCodeInput.value)
-            .then(() => {
-                // Визуальная обратная связь
-                copyReferralBtn.innerHTML = '<i class="fas fa-check"></i>';
-                setTimeout(() => {
-                    copyReferralBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                }, 2000);
-                
-                // Показываем уведомление
-                tgApp.showPopup({
-                    title: 'Успешно',
-                    message: 'Реферальная ссылка скопирована в буфер обмена',
-                    buttons: [{type: 'ok'}]
-                });
-            })
-            .catch(err => {
-                console.error('Не удалось скопировать: ', err);
-                
-                // Показываем уведомление об ошибке
-                tgApp.showPopup({
-                    title: 'Ошибка',
-                    message: 'Не удалось скопировать ссылку. Пожалуйста, скопируйте вручную.',
-                    buttons: [{type: 'ok'}]
-                });
+    // Анимация перехода
+    if (pageIndex < currentPage) {
+        // Переход влево
+        appContainer.classList.add('animate__animated', 'animate__fadeOutRight');
+        setTimeout(() => {
+            // Здесь будет код для загрузки содержимого новой страницы
+            // Пока просто показываем сообщение
+            tgApp.showPopup({
+                title: pageIndex === -1 ? 'Рефералка' : 'Магазин',
+                message: pageIndex === -1 ? 'Страница рефералки будет доступна позже' : 'Вернулись в магазин',
+                buttons: [{type: 'ok'}]
             });
-    });
+            
+            appContainer.classList.remove('animate__fadeOutRight');
+            appContainer.classList.add('animate__fadeInLeft');
+            
+            setTimeout(() => {
+                appContainer.classList.remove('animate__animated', 'animate__fadeInLeft');
+            }, 500);
+        }, 300);
+    } else {
+        // Переход вправо
+        appContainer.classList.add('animate__animated', 'animate__fadeOutLeft');
+        setTimeout(() => {
+            // Здесь будет код для загрузки содержимого новой страницы
+            // Пока просто показываем сообщение
+            tgApp.showPopup({
+                title: pageIndex === 1 ? 'Биржа' : 'Магазин',
+                message: pageIndex === 1 ? 'Страница биржи будет доступна позже' : 'Вернулись в магазин',
+                buttons: [{type: 'ok'}]
+            });
+            
+            appContainer.classList.remove('animate__fadeOutLeft');
+            appContainer.classList.add('animate__fadeInRight');
+            
+            setTimeout(() => {
+                appContainer.classList.remove('animate__animated', 'animate__fadeInRight');
+            }, 500);
+        }, 300);
+    }
+    
+    // Обновляем текущую страницу
+    currentPage = pageIndex;
+    
+    // Обновляем видимость навигационных стрелок
+    updateNavigationArrows();
 }
 
-// Обработчики для кнопок на странице биржи
-if (buyStarsBtn) {
-    buyStarsBtn.addEventListener('click', () => {
-        // Переходим на страницу магазина
-        goToPage(1);
-    });
+// Обновление видимости навигационных стрелок
+function updateNavigationArrows() {
+    // Всегда показываем обе стрелки, так как у нас есть страницы и слева, и справа
+    leftNav.style.display = 'flex';
+    rightNav.style.display = 'flex';
+    
+    // Но меняем их прозрачность в зависимости от текущей страницы
+    leftNav.style.opacity = currentPage === -1 ? '0.5' : '';
+    rightNav.style.opacity = currentPage === 1 ? '0.5' : '';
 }
 
-if (sellStarsBtn) {
-    sellStarsBtn.addEventListener('click', () => {
-        // Показываем уведомление
-        tgApp.showPopup({
-            title: 'Скоро',
-            message: 'Функция продажи звезд будет доступна в ближайшее время',
-            buttons: [{type: 'ok'}]
-        });
-    });
+// Обработка свайпов
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+}, false);
+
+document.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+}, false);
+
+function handleSwipe() {
+    const swipeThreshold = 100; // Минимальное расстояние для определения свайпа
+    
+    if (touchEndX - touchStartX > swipeThreshold) {
+        // Свайп вправо - переход на страницу слева
+        if (currentPage > -1) {
+            navigateToPage(currentPage - 1);
+        }
+    } else if (touchStartX - touchEndX > swipeThreshold) {
+        // Свайп влево - переход на страницу справа
+        if (currentPage < 1) {
+            navigateToPage(currentPage + 1);
+        }
+    }
 }
 
 // Инициализация
@@ -393,17 +373,14 @@ function init() {
     // Кнопка "Продолжить" всегда активна, так как у нас только кастомный пакет
     toStep2Btn.disabled = false;
     
-    // Инициализируем свайп
-    initSwipe();
-    
-    // Устанавливаем начальную страницу (магазин)
-    goToPage(1);
-    
     // Анимируем элементы при загрузке
     setTimeout(() => {
         animateOnScroll();
         animateStars();
     }, 500);
+    
+    // Инициализируем навигационные стрелки
+    updateNavigationArrows();
 }
 
 // Запускаем инициализацию
