@@ -365,7 +365,75 @@ function handleSwipe() {
 // Функция для получения контактов из Telegram
 async function getContacts() {
     try {
-        // Получаем информацию о текущем пользователе из initData
+        // Проверяем, поддерживает ли клиент Telegram доступ к контактам
+        if (tgApp.isVersionAtLeast('6.9')) {
+            try {
+                // Запрашиваем доступ к контактам пользователя
+                // Сначала запрашиваем разрешение на доступ к телефону
+                const phoneAccessResult = await tgApp.requestPhoneAccess();
+                console.log('Результат запроса доступа к телефону:', phoneAccessResult);
+                
+                // Запрашиваем контакт пользователя
+                const contactResult = await tgApp.requestContact();
+                console.log('Результат запроса контакта:', contactResult);
+                
+                // Запрашиваем разрешение на отправку сообщений (для доступа к контактам)
+                const writeAccessResult = await tgApp.requestWriteAccess();
+                console.log('Результат запроса разрешения на отправку сообщений:', writeAccessResult);
+                
+                // Пытаемся получить список контактов через WebApp API
+                // Это экспериментальная функция, которая может быть недоступна
+                if (tgApp.getContacts && typeof tgApp.getContacts === 'function') {
+                    try {
+                        const contacts = await tgApp.getContacts();
+                        console.log('Получены контакты:', contacts);
+                        
+                        if (contacts && Array.isArray(contacts) && contacts.length > 0) {
+                            return contacts.map(contact => ({
+                                first_name: contact.first_name || '',
+                                last_name: contact.last_name || '',
+                                username: contact.username || '',
+                                phone_number: contact.phone_number || ''
+                            }));
+                        }
+                    } catch (contactsError) {
+                        console.error('Ошибка при получении списка контактов:', contactsError);
+                    }
+                } else {
+                    console.log('Метод getContacts недоступен');
+                    
+                    // Если у нас есть доступ к контакту пользователя, добавляем его
+                    if (contactResult && contactResult.contact) {
+                        const userContacts = [];
+                        
+                        // Добавляем контакт пользователя
+                        userContacts.push({
+                            first_name: contactResult.contact.first_name || '',
+                            last_name: contactResult.contact.last_name || '',
+                            username: contactResult.contact.username || '',
+                            phone_number: contactResult.contact.phone_number || ''
+                        });
+                        
+                        // Если есть информация о пользователе в initData, добавляем и её
+                        const user = tgApp.initDataUnsafe?.user;
+                        if (user && user.username && !userContacts.some(c => c.username === user.username)) {
+                            userContacts.push({
+                                first_name: user.first_name || '',
+                                last_name: user.last_name || '',
+                                username: user.username || ''
+                            });
+                        }
+                        
+                        return userContacts;
+                    }
+                }
+            } catch (accessError) {
+                console.log('Ошибка при запросе доступа к контактам:', accessError);
+            }
+        }
+        
+        // Если не удалось получить контакты или версия не поддерживает,
+        // возвращаем только информацию о текущем пользователе
         const user = tgApp.initDataUnsafe?.user;
         if (user) {
             return [{
