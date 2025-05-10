@@ -116,7 +116,7 @@ bot.on('message', (msg) => {
   // Проверяем, что это не команда и не данные из веб-приложения
   if (!msg.text || !msg.text.startsWith('/') && !msg.web_app_data) {
     const chatId = msg.chat.id;
-    const webAppUrl = `http://localhost:3000`;
+    const webAppUrl = `https://42150a8d-14a6-4d03-8420-8a80d6225b8b-00-2wgifpmi2x174.sisko.replit.dev/`;
     
     // Создаем клавиатуру с кнопкой для открытия Mini App
     const keyboard = {
