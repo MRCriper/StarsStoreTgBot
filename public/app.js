@@ -375,39 +375,24 @@ async function getContacts() {
                 first_name: user.first_name || '',
                 last_name: user.last_name || '',
                 username: user.username || '',
-                phone_number: ''
+                phone_number: '',
+                is_current_user: true
             });
         }
         
-        // Пытаемся получить контакт через API Telegram
+        // Получаем сохраненные контакты из localStorage, если они есть
         try {
-            // Проверяем, доступен ли метод requestContact
-            if (tgApp.version && parseFloat(tgApp.version) >= 6.9) {
-                // Используем метод requestContact для получения контакта
-                const result = await tgApp.requestContact();
-                
-                if (result && result.contact) {
-                    // Добавляем полученный контакт в список
-                    contacts.push({
-                        first_name: result.contact.first_name || '',
-                        last_name: result.contact.last_name || '',
-                        username: result.contact.username || '',
-                        phone_number: result.contact.phone_number || ''
-                    });
-                }
+            const savedContacts = localStorage.getItem('savedContacts');
+            if (savedContacts) {
+                const parsedContacts = JSON.parse(savedContacts);
+                // Фильтруем, чтобы избежать дубликатов
+                const filteredContacts = parsedContacts.filter(contact => 
+                    !contacts.some(c => c.username === contact.username && contact.username)
+                );
+                contacts.push(...filteredContacts);
             }
-        } catch (contactError) {
-            console.log('Не удалось получить контакт через requestContact:', contactError);
-        }
-        
-        // Если не удалось получить контакты через API или список пуст, добавляем текущего пользователя
-        if (contacts.length === 0 && user) {
-            contacts.push({
-                first_name: user.first_name || '',
-                last_name: user.last_name || '',
-                username: user.username || '',
-                phone_number: ''
-            });
+        } catch (storageError) {
+            console.log('Ошибка при получении сохраненных контактов:', storageError);
         }
         
         return contacts;
@@ -421,12 +406,84 @@ async function getContacts() {
                 first_name: user.first_name || '',
                 last_name: user.last_name || '',
                 username: user.username || '',
-                phone_number: ''
+                phone_number: '',
+                is_current_user: true
             }];
         }
         
         // Если данные пользователя недоступны, возвращаем пустой массив
         return [];
+    }
+}
+
+// Функция для сохранения контакта в localStorage
+function saveContact(contact) {
+    try {
+        // Получаем текущие сохраненные контакты
+        const savedContacts = localStorage.getItem('savedContacts');
+        let contacts = [];
+        
+        if (savedContacts) {
+            contacts = JSON.parse(savedContacts);
+        }
+        
+        // Проверяем, есть ли уже такой контакт
+        const existingContactIndex = contacts.findIndex(c => 
+            c.username === contact.username && contact.username
+        );
+        
+        if (existingContactIndex !== -1) {
+            // Обновляем существующий контакт
+            contacts[existingContactIndex] = contact;
+        } else {
+            // Добавляем новый контакт
+            contacts.push(contact);
+        }
+        
+        // Ограничиваем количество сохраненных контактов до 10
+        if (contacts.length > 10) {
+            contacts = contacts.slice(-10);
+        }
+        
+        // Сохраняем обновленный список контактов
+        localStorage.setItem('savedContacts', JSON.stringify(contacts));
+        
+        return true;
+    } catch (error) {
+        console.error('Ошибка при сохранении контакта:', error);
+        return false;
+    }
+}
+
+// Функция для запроса контакта через Telegram API
+async function requestContactFromTelegram() {
+    try {
+        // Проверяем, доступен ли метод requestContact
+        if (tgApp.version && parseFloat(tgApp.version) >= 6.9) {
+            // Используем метод requestContact для получения контакта
+            const result = await tgApp.requestContact();
+            
+            if (result && result.contact) {
+                // Создаем объект контакта
+                const contact = {
+                    first_name: result.contact.first_name || '',
+                    last_name: result.contact.last_name || '',
+                    username: result.contact.username || '',
+                    phone_number: result.contact.phone_number || '',
+                    is_current_user: false
+                };
+                
+                // Сохраняем контакт
+                saveContact(contact);
+                
+                return contact;
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Ошибка при запросе контакта:', error);
+        return null;
     }
 }
 
@@ -448,6 +505,11 @@ async function showContactsDropdown() {
             const contactItem = document.createElement('div');
             contactItem.className = 'contact-item';
             
+            // Добавляем класс для текущего пользователя
+            if (contact.is_current_user) {
+                contactItem.classList.add('current-user');
+            }
+            
             // Создаем аватар (первая буква имени)
             const avatar = document.createElement('div');
             avatar.className = 'contact-avatar';
@@ -461,6 +523,14 @@ async function showContactsDropdown() {
             const contactName = document.createElement('div');
             contactName.className = 'contact-name';
             contactName.textContent = `${contact.first_name || ''} ${contact.last_name || ''}`.trim();
+            
+            // Добавляем метку "Вы" для текущего пользователя
+            if (contact.is_current_user) {
+                const currentUserBadge = document.createElement('span');
+                currentUserBadge.className = 'current-user-badge';
+                currentUserBadge.textContent = 'Вы';
+                contactName.appendChild(currentUserBadge);
+            }
             
             // Username контакта
             const contactUsername = document.createElement('div');
@@ -505,22 +575,33 @@ async function showContactsDropdown() {
         selectContactButton.innerHTML = '<i class="fas fa-user-plus"></i> Выбрать другой контакт';
         selectContactButton.addEventListener('click', async () => {
             try {
-                if (tgApp.isVersionAtLeast('6.9') && typeof tgApp.requestContact === 'function') {
-                    const result = await tgApp.requestContact();
-                    if (result && result.contact && result.contact.username) {
-                        usernameInput.value = result.contact.username;
-                        hideContactsDropdown();
-                    }
+                // Запрашиваем контакт через Telegram API
+                const contact = await requestContactFromTelegram();
+                
+                if (contact && contact.username) {
+                    // Устанавливаем значение в поле ввода
+                    usernameInput.value = contact.username;
+                    hideContactsDropdown();
+                    
+                    // Обновляем список контактов
+                    showContactsDropdown();
                 } else {
-                    // Если API недоступен, показываем сообщение
+                    // Если контакт не получен, показываем сообщение
                     tgApp.showPopup({
-                        title: 'Функция недоступна',
-                        message: 'Для выбора контакта требуется более новая версия Telegram',
+                        title: 'Контакт не выбран',
+                        message: 'Пожалуйста, выберите контакт или введите имя пользователя вручную',
                         buttons: [{type: 'ok'}]
                     });
                 }
             } catch (error) {
                 console.error('Ошибка при запросе контакта:', error);
+                
+                // Показываем сообщение об ошибке
+                tgApp.showPopup({
+                    title: 'Ошибка',
+                    message: 'Не удалось получить контакт. Пожалуйста, введите имя пользователя вручную',
+                    buttons: [{type: 'ok'}]
+                });
             }
         });
         contactsDropdown.appendChild(selectContactButton);
