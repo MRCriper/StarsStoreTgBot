@@ -365,20 +365,17 @@ function handleSwipe() {
 // Функция для получения контактов из Telegram
 async function getContacts() {
     try {
-        // Проверяем, поддерживает ли Telegram Web App метод getContacts
-        if (tgApp.getContacts) {
-            const contacts = await tgApp.getContacts();
-            return contacts;
+        // Получаем информацию о текущем пользователе из initData
+        const user = tgApp.initDataUnsafe?.user;
+        if (user) {
+            return [{
+                first_name: user.first_name || '',
+                last_name: user.last_name || '',
+                username: user.username || ''
+            }];
         } else {
-            console.log('Метод getContacts не поддерживается в этой версии Telegram Web App');
-            // Возвращаем тестовые данные для демонстрации
-            return [
-                { first_name: 'Иван', last_name: 'Иванов', username: 'ivanov' },
-                { first_name: 'Петр', last_name: 'Петров', username: 'petrov' },
-                { first_name: 'Анна', last_name: 'Сидорова', username: 'anna_sid' },
-                { first_name: 'Мария', last_name: 'Козлова', username: 'maria_k' },
-                { first_name: 'Алексей', last_name: 'Смирнов', username: 'alex_smirnov' }
-            ];
+            console.log('Не удалось получить информацию о пользователе');
+            return [];
         }
     } catch (error) {
         console.error('Ошибка при получении контактов:', error);
