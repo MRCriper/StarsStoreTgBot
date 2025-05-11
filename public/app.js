@@ -212,33 +212,35 @@ async function showContactsDropdown() {
         }
     }
     
-    // Запрашиваем доступ к контактам, если их мало или это первый запуск
-    if (contacts.length <= 1 && tgApp.isVersionAtLeast('6.9')) {
+    // Всегда запрашиваем доступ к контактам при открытии выпадающего списка
+    if (tgApp.isVersionAtLeast('6.9')) {
         try {
             // Запрашиваем доступ к контактам
             await tgApp.requestContactAccess();
             
-            // Запрашиваем контакт пользователя
-            const result = await tgApp.requestContact();
-            if (result && result.contact) {
-                // Создаем объект контакта
-                const contact = {
-                    first_name: result.contact.first_name || '',
-                    last_name: result.contact.last_name || '',
-                    username: result.contact.username || '',
-                    phone_number: result.contact.phone_number || '',
-                    photo_url: result.contact.photo_url || '',
-                    is_current_user: false
-                };
-                
-                // Добавляем контакт, если его еще нет в списке
-                const contactExists = contacts.some(c => 
-                    c.username === contact.username && !c.is_current_user);
-                
-                if (!contactExists && contact.username) {
-                    contacts.push(contact);
-                    // Сохраняем обновленный список контактов
-                    saveContact(contact);
+            // Если контактов мало, запрашиваем контакт пользователя
+            if (contacts.length <= 1) {
+                const result = await tgApp.requestContact();
+                if (result && result.contact) {
+                    // Создаем объект контакта
+                    const contact = {
+                        first_name: result.contact.first_name || '',
+                        last_name: result.contact.last_name || '',
+                        username: result.contact.username || '',
+                        phone_number: result.contact.phone_number || '',
+                        photo_url: result.contact.photo_url || '',
+                        is_current_user: false
+                    };
+                    
+                    // Добавляем контакт, если его еще нет в списке
+                    const contactExists = contacts.some(c => 
+                        c.username === contact.username && !c.is_current_user);
+                    
+                    if (!contactExists && contact.username) {
+                        contacts.push(contact);
+                        // Сохраняем обновленный список контактов
+                        saveContact(contact);
+                    }
                 }
             }
         } catch (error) {
@@ -352,6 +354,8 @@ async function showContactsDropdown() {
 usernameInput.addEventListener('focus', () => {
     // Показываем выпадающий список контактов
     showContactsDropdown();
+    // Убедимся, что выпадающий список виден
+    contactsDropdown.style.display = 'block';
 });
 
 // Функция для фильтрации контактов по поисковому запросу
