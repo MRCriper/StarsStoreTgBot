@@ -312,7 +312,7 @@ async function showContactsDropdown() {
 usernameInput.addEventListener('focus', () => {
     // Показываем выпадающий список контактов без автоматического запроса
     contactsDropdown.style.display = 'block';
-    // Заполняем выпадающий список контактами
+    // Заполняем выпадающий список контактами из localStorage без запроса нового контакта
     showContactsDropdown();
 });
 
@@ -528,34 +528,6 @@ async function getContacts() {
             }
         } catch (storageError) {
             console.log('Ошибка при получении сохраненных контактов:', storageError);
-        }
-        
-        // Используем Telegram API для получения контактов
-        try {
-            // Проверяем, поддерживает ли текущая версия Telegram Web App метод requestContact
-            if (tgApp.isVersionAtLeast('6.9')) {
-                // Запрашиваем контакт у пользователя
-                const result = await tgApp.requestContact();
-                if (result) {
-                    // Добавляем полученный контакт в список
-                    const contact = {
-                        first_name: result.first_name || '',
-                        last_name: result.last_name || '',
-                        username: result.username || '',
-                        phone_number: result.phone_number || '',
-                        is_current_user: false
-                    };
-                    
-                    // Проверяем, нет ли уже такого контакта в списке
-                    if (contact.username && !contacts.some(c => c.username === contact.username)) {
-                        contacts.push(contact);
-                        // Сохраняем контакт в localStorage
-                        saveContact(contact);
-                    }
-                }
-            }
-        } catch (tgError) {
-            console.log('Ошибка при получении контакта из Telegram API:', tgError);
         }
         
         // Добавляем текущего пользователя в список контактов, если данные доступны и его еще нет в списке
