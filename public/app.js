@@ -546,8 +546,62 @@ async function requestContactFromTelegram() {
         // Проверяем версию Telegram для использования правильного API
         if (tgApp.isVersionAtLeast('6.9')) {
             try {
-                // Используем стандартный метод Telegram API для запроса контакта
-                const contactData = await tgApp.requestContact();
+                // Создаем уникальный идентификатор запроса
+                const reqId = `get_contact_${Date.now()}`;
+                
+                // Создаем Promise для ожидания ответа
+                const contactPromise = new Promise((resolve, reject) => {
+                    // Функция для обработки события получения контакта
+                    const handleContactReceived = (event) => {
+                        try {
+                            // Для веб-версии
+                            if (typeof event.data === 'string') {
+                                try {
+                                    const data = JSON.parse(event.data);
+                                    if (data.eventType === 'contact_selected' && data.eventData && data.eventData.reqId === reqId) {
+                                        window.removeEventListener('message', handleContactReceived);
+                                        resolve(data.eventData.contact || null);
+                                    }
+                                } catch (e) {
+                                    console.log('Ошибка при парсинге данных события:', e);
+                                }
+                            }
+                            // Для мобильных приложений
+                            else if (event.detail && event.detail.eventType === 'contact_selected') {
+                                window.removeEventListener('tgwebapp:contact_selected', handleContactReceived);
+                                resolve(event.detail.contact || null);
+                            }
+                        } catch (e) {
+                            console.error('Ошибка при обработке события получения контакта:', e);
+                        }
+                    };
+                    
+                    // Добавляем обработчики событий
+                    window.addEventListener('message', handleContactReceived);
+                    window.addEventListener('tgwebapp:contact_selected', handleContactReceived);
+                    
+                    // Устанавливаем таймаут
+                    setTimeout(() => {
+                        window.removeEventListener('message', handleContactReceived);
+                        window.removeEventListener('tgwebapp:contact_selected', handleContactReceived);
+                        reject(new Error('Таймаут при ожидании выбора контакта'));
+                    }, 60000); // 60 секунд таймаут
+                });
+                
+                // Отправляем запрос на выбор контакта
+                if (window.TelegramWebviewProxy) {
+                    // Для мобильных приложений
+                    window.TelegramWebviewProxy.postEvent('web_app_request_contact', JSON.stringify({ reqId }));
+                } else {
+                    // Для веб-версии
+                    window.parent.postMessage(JSON.stringify({
+                        eventType: 'web_app_request_contact',
+                        eventData: { reqId }
+                    }), '*');
+                }
+                
+                // Ожидаем ответа
+                const contactData = await contactPromise;
                 
                 // Закрываем индикатор загрузки
                 if (loadingPopup && loadingPopup.close) {
@@ -555,7 +609,7 @@ async function requestContactFromTelegram() {
                 }
                 
                 if (contactData) {
-                    console.log('Получен контакт через requestContact:', contactData);
+                    console.log('Получен контакт:', contactData);
                     
                     // Создаем объект контакта
                     const newContact = {
