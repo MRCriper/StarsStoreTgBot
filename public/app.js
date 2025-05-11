@@ -538,86 +538,164 @@ async function requestContactFromTelegram() {
     try {
         // Проверяем версию Telegram для использования правильного API
         if (tgApp.isVersionAtLeast('6.9')) {
-            // Запрашиваем доступ к контактам пользователя
-            const result = await tgApp.showPopup({
-                title: 'Доступ к контактам',
-                message: 'Для выбора контакта необходимо разрешить доступ к вашим контактам',
-                buttons: [
-                    {id: 'allow', type: 'default', text: 'Разрешить'},
-                    {id: 'cancel', type: 'cancel', text: 'Отмена'}
-                ]
-            });
-            
-            if (result && result.id === 'allow') {
-                // Используем WebApp API для запроса контактов
-                try {
+            try {
+                // Используем официальный API для открытия выбора контакта
+                const result = await new Promise((resolve) => {
                     // Создаем уникальный идентификатор запроса
                     const reqId = `contact_${Date.now()}`;
                     
-                    // Запрашиваем контакты через WebApp API
-                    const contactData = await new Promise((resolve) => {
-                        // Функция для обработки события выбора контакта
-                        const handleContactSelected = (event) => {
-                            try {
-                                // Для веб-версии
-                                if (typeof event.data === 'string') {
-                                    const data = JSON.parse(event.data);
-                                    if (data.eventType === 'contact_selected' && data.eventData && data.eventData.reqId === reqId) {
-                                        window.removeEventListener('message', handleContactSelected);
-                                        resolve(data.eventData.contact);
-                                    }
-                                }
-                                // Для мобильных приложений
-                                else if (event.detail && event.detail.eventType === 'contact_selected') {
-                                    window.removeEventListener('tgwebapp:contact_selected', handleContactSelected);
-                                    resolve(event.detail.contact);
-                                }
-                            } catch (e) {
-                                console.error('Ошибка при обработке события выбора контакта:', e);
-                            }
-                        };
-                        
-                        // Добавляем обработчики событий
-                        window.addEventListener('message', handleContactSelected);
-                        window.addEventListener('tgwebapp:contact_selected', handleContactSelected);
-                        
-                        // Отправляем запрос на выбор контакта
-                        if (window.TelegramWebviewProxy) {
-                            // Для мобильных приложений
-                            window.TelegramWebviewProxy.postEvent('web_app_open_contact_picker', JSON.stringify({ reqId }));
-                        } else {
+                    // Функция для обработки события выбора контакта
+                    const handleContactSelected = (event) => {
+                        try {
                             // Для веб-версии
-                            window.parent.postMessage(JSON.stringify({
-                                eventType: 'web_app_open_contact_picker',
-                                eventData: { reqId }
-                            }), '*');
+                            if (typeof event.data === 'string') {
+                                try {
+                                    const data = JSON.parse(event.data);
+                                    if (data.eventType === 'web_app_contact_picked' && data.eventData) {
+                                        window.removeEventListener('message', handleContactSelected);
+                                        resolve(data.eventData);
+                                    }
+                                } catch (e) {
+                                    console.error('Ошибка при парсинге данных события:', e);
+                                }
+                            }
+                            // Для мобильных приложений
+                            else if (event.detail && event.detail.eventType === 'web_app_contact_picked') {
+                                window.removeEventListener('tgwebapp:contact_picked', handleContactSelected);
+                                resolve(event.detail);
+                            }
+                        } catch (e) {
+                            console.error('Ошибка при обработке события выбора контакта:', e);
                         }
-                        
-                        // Устанавливаем таймаут
-                        setTimeout(() => {
-                            window.removeEventListener('message', handleContactSelected);
-                            window.removeEventListener('tgwebapp:contact_selected', handleContactSelected);
-                            resolve(null);
-                        }, 10000); // 10 секунд таймаут
+                    };
+                    
+                    // Добавляем обработчики событий
+                    window.addEventListener('message', handleContactSelected);
+                    window.addEventListener('tgwebapp:contact_picked', handleContactSelected);
+                    
+                    // Отправляем запрос на открытие выбора контакта
+                    if (window.TelegramWebviewProxy) {
+                        // Для мобильных приложений
+                        window.TelegramWebviewProxy.postEvent('web_app_open_contact_picker', JSON.stringify({}));
+                    } else {
+                        // Для веб-версии
+                        window.parent.postMessage(JSON.stringify({
+                            eventType: 'web_app_open_contact_picker',
+                            eventData: {}
+                        }), '*');
+                    }
+                    
+                    // Устанавливаем таймаут
+                    setTimeout(() => {
+                        window.removeEventListener('message', handleContactSelected);
+                        window.removeEventListener('tgwebapp:contact_picked', handleContactSelected);
+                        resolve(null);
+                    }, 10000); // 10 секунд таймаут
+                });
+                
+                if (result) {
+                    // Создаем объект контакта
+                    const newContact = {
+                        first_name: result.first_name || '',
+                        last_name: result.last_name || '',
+                        username: result.username || '',
+                        phone_number: result.phone_number || '',
+                        is_current_user: false
+                    };
+                    
+                    // Сохраняем контакт
+                    saveContact(newContact);
+                    
+                    return newContact;
+                }
+            } catch (contactError) {
+                console.error('Ошибка при запросе контакта:', contactError);
+                
+                // Пробуем альтернативный метод - запрос контакта через requestContact
+                try {
+                    // Запрашиваем доступ к контактам пользователя
+                    const result = await tgApp.showPopup({
+                        title: 'Выбор контакта',
+                        message: 'Хотите выбрать контакт из Telegram?',
+                        buttons: [
+                            {id: 'allow', type: 'default', text: 'Выбрать'},
+                            {id: 'cancel', type: 'cancel', text: 'Отмена'}
+                        ]
                     });
                     
-                    if (contactData) {
-                        // Создаем объект контакта
-                        const newContact = {
-                            first_name: contactData.first_name || '',
-                            last_name: contactData.last_name || '',
-                            username: contactData.username || '',
-                            phone_number: contactData.phone_number || '',
-                            is_current_user: false
-                        };
+                    if (result && result.id === 'allow') {
+                        // Используем метод requestContact для получения контакта
+                        const contactData = await new Promise((resolve) => {
+                            // Создаем уникальный идентификатор запроса
+                            const reqId = `request_contact_${Date.now()}`;
+                            
+                            // Функция для обработки события получения контакта
+                            const handleContactReceived = (event) => {
+                                try {
+                                    // Для веб-версии
+                                    if (typeof event.data === 'string') {
+                                        try {
+                                            const data = JSON.parse(event.data);
+                                            if (data.eventType === 'web_app_contact_requested' && data.eventData) {
+                                                window.removeEventListener('message', handleContactReceived);
+                                                resolve(data.eventData.contact);
+                                            }
+                                        } catch (e) {
+                                            console.error('Ошибка при парсинге данных события:', e);
+                                        }
+                                    }
+                                    // Для мобильных приложений
+                                    else if (event.detail && event.detail.eventType === 'web_app_contact_requested') {
+                                        window.removeEventListener('tgwebapp:contact_requested', handleContactReceived);
+                                        resolve(event.detail.contact);
+                                    }
+                                } catch (e) {
+                                    console.error('Ошибка при обработке события получения контакта:', e);
+                                }
+                            };
+                            
+                            // Добавляем обработчики событий
+                            window.addEventListener('message', handleContactReceived);
+                            window.addEventListener('tgwebapp:contact_requested', handleContactReceived);
+                            
+                            // Отправляем запрос на получение контакта
+                            if (window.TelegramWebviewProxy) {
+                                // Для мобильных приложений
+                                window.TelegramWebviewProxy.postEvent('web_app_request_contact', JSON.stringify({}));
+                            } else {
+                                // Для веб-версии
+                                window.parent.postMessage(JSON.stringify({
+                                    eventType: 'web_app_request_contact',
+                                    eventData: {}
+                                }), '*');
+                            }
+                            
+                            // Устанавливаем таймаут
+                            setTimeout(() => {
+                                window.removeEventListener('message', handleContactReceived);
+                                window.removeEventListener('tgwebapp:contact_requested', handleContactReceived);
+                                resolve(null);
+                            }, 10000); // 10 секунд таймаут
+                        });
                         
-                        // Сохраняем контакт
-                        saveContact(newContact);
-                        
-                        return newContact;
+                        if (contactData) {
+                            // Создаем объект контакта
+                            const newContact = {
+                                first_name: contactData.first_name || '',
+                                last_name: contactData.last_name || '',
+                                username: contactData.username || '',
+                                phone_number: contactData.phone_number || '',
+                                is_current_user: false
+                            };
+                            
+                            // Сохраняем контакт
+                            saveContact(newContact);
+                            
+                            return newContact;
+                        }
                     }
-                } catch (contactError) {
-                    console.error('Ошибка при запросе контакта:', contactError);
+                } catch (requestError) {
+                    console.error('Ошибка при запросе контакта через requestContact:', requestError);
                 }
             }
         } else {
