@@ -216,31 +216,36 @@ async function showContactsDropdown() {
     if (tgApp.isVersionAtLeast('6.9')) {
         try {
             // Запрашиваем доступ к контактам
-            await tgApp.requestContactAccess();
+            const accessResult = await tgApp.requestContactAccess();
+            console.log('Результат запроса доступа к контактам:', accessResult);
             
             // Если контактов мало, запрашиваем контакт пользователя
             if (contacts.length <= 1) {
-                const result = await tgApp.requestContact();
-                if (result && result.contact) {
-                    // Создаем объект контакта
-                    const contact = {
-                        first_name: result.contact.first_name || '',
-                        last_name: result.contact.last_name || '',
-                        username: result.contact.username || '',
-                        phone_number: result.contact.phone_number || '',
-                        photo_url: result.contact.photo_url || '',
-                        is_current_user: false
-                    };
-                    
-                    // Добавляем контакт, если его еще нет в списке
-                    const contactExists = contacts.some(c => 
-                        c.username === contact.username && !c.is_current_user);
-                    
-                    if (!contactExists && contact.username) {
-                        contacts.push(contact);
-                        // Сохраняем обновленный список контактов
-                        saveContact(contact);
+                try {
+                    const result = await tgApp.requestContact();
+                    if (result && result.contact) {
+                        // Создаем объект контакта
+                        const contact = {
+                            first_name: result.contact.first_name || '',
+                            last_name: result.contact.last_name || '',
+                            username: result.contact.username || '',
+                            phone_number: result.contact.phone_number || '',
+                            photo_url: result.contact.photo_url || '',
+                            is_current_user: false
+                        };
+                        
+                        // Добавляем контакт, если его еще нет в списке
+                        const contactExists = contacts.some(c => 
+                            c.username === contact.username && !c.is_current_user);
+                        
+                        if (!contactExists && contact.username) {
+                            contacts.push(contact);
+                            // Сохраняем обновленный список контактов
+                            saveContact(contact);
+                        }
                     }
+                } catch (contactError) {
+                    console.error('Ошибка при запросе контакта:', contactError);
                 }
             }
         } catch (error) {
@@ -268,28 +273,42 @@ async function showContactsDropdown() {
         try {
             // Запрашиваем контакт у пользователя только при явном клике на кнопку
             if (tgApp.isVersionAtLeast('6.9')) {
-                const result = await tgApp.requestContact();
-                if (result && result.contact) {
-                    // Создаем объект контакта
-                    const contact = {
-                        first_name: result.contact.first_name || '',
-                        last_name: result.contact.last_name || '',
-                        username: result.contact.username || '',
-                        phone_number: result.contact.phone_number || '',
-                        photo_url: result.contact.photo_url || '',
-                        is_current_user: false
-                    };
-                    
-                    // Сохраняем контакт
-                    saveContact(contact);
-                    
-                    // Устанавливаем имя пользователя в поле ввода
-                    if (contact.username) {
-                        usernameInput.value = contact.username;
+                // Сначала запрашиваем доступ к контактам
+                await tgApp.requestContactAccess();
+                
+                // Затем запрашиваем выбор контакта
+                try {
+                    const result = await tgApp.requestContact();
+                    if (result && result.contact) {
+                        // Создаем объект контакта
+                        const contact = {
+                            first_name: result.contact.first_name || '',
+                            last_name: result.contact.last_name || '',
+                            username: result.contact.username || '',
+                            phone_number: result.contact.phone_number || '',
+                            photo_url: result.contact.photo_url || '',
+                            is_current_user: false
+                        };
+                        
+                        // Сохраняем контакт
+                        saveContact(contact);
+                        
+                        // Устанавливаем имя пользователя в поле ввода
+                        if (contact.username) {
+                            usernameInput.value = contact.username;
+                        }
+                        
+                        // Скрываем выпадающий список
+                        contactsDropdown.style.display = 'none';
                     }
-                    
-                    // Скрываем выпадающий список
-                    contactsDropdown.style.display = 'none';
+                } catch (contactError) {
+                    console.error('Ошибка при запросе контакта:', contactError);
+                    // Показываем сообщение об ошибке
+                    tgApp.showPopup({
+                        title: 'Ошибка',
+                        message: 'Не удалось получить контакт. Пожалуйста, введите имя пользователя вручную',
+                        buttons: [{type: 'ok'}]
+                    });
                 }
             } else {
                 // Если API не поддерживается, показываем сообщение
@@ -300,10 +319,10 @@ async function showContactsDropdown() {
                 });
             }
         } catch (error) {
-            console.error('Ошибка при запросе контакта:', error);
+            console.error('Ошибка при запросе доступа к контактам:', error);
             tgApp.showPopup({
                 title: 'Ошибка',
-                message: 'Не удалось получить контакт',
+                message: 'Не удалось получить доступ к контактам. Пожалуйста, введите имя пользователя вручную',
                 buttons: [{type: 'ok'}]
             });
         }
