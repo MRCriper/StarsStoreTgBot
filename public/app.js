@@ -485,37 +485,45 @@ function saveContact(contact) {
 // Функция для запроса контакта через Telegram API
 async function requestContactFromTelegram() {
     try {
-        // Запрашиваем доступ к контактам пользователя
-        const hasAccess = await tgApp.requestWriteAccess();
+        // Показываем пользователю нативный интерфейс выбора контакта
+        const contact = await tgApp.requestContact();
         
-        if (hasAccess) {
-            // Если доступ получен, запрашиваем выбор контакта
-            try {
-                // Используем нативный метод requestContact из Telegram Web App API
-                const contact = await tgApp.requestContact();
+        if (contact) {
+            // Создаем объект контакта
+            const newContact = {
+                first_name: contact.first_name || '',
+                last_name: contact.last_name || '',
+                username: contact.username || '',
+                phone_number: contact.phone || contact.phone_number || '',
+                is_current_user: false
+            };
+            
+            // Сохраняем контакт
+            saveContact(newContact);
+            
+            return newContact;
+        } else {
+            // Если контакт не выбран, показываем сообщение
+            tgApp.showPopup({
+                title: 'Контакт не выбран',
+                message: 'Пожалуйста, выберите контакт или введите имя пользователя вручную',
+                buttons: [{type: 'ok'}]
+            });
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Ошибка при запросе контакта:', error);
+        
+        // Если произошла ошибка, возможно, метод не поддерживается
+        // Пробуем показать список контактов через попап
+        try {
+            if (tgApp.getContactList && typeof tgApp.getContactList === 'function') {
+                const contacts = await tgApp.getContactList();
                 
-                if (contact) {
-                    // Создаем объект контакта
-                    const newContact = {
-                        first_name: contact.first_name || '',
-                        last_name: contact.last_name || '',
-                        username: contact.username || '',
-                        phone_number: contact.phone || contact.phone_number || '',
-                        is_current_user: false
-                    };
-                    
-                    // Сохраняем контакт
-                    saveContact(newContact);
-                    
-                    return newContact;
-                }
-            } catch (requestError) {
-                console.log('Ошибка при использовании requestContact:', requestError);
-                
-                // Пробуем получить все контакты
-                if (tgApp.contacts && Array.isArray(tgApp.contacts) && tgApp.contacts.length > 0) {
+                if (contacts && contacts.length > 0) {
                     // Показываем пользователю список контактов для выбора
-                    const contactsList = tgApp.contacts.map((c, index) => ({
+                    const contactsList = contacts.map((c, index) => ({
                         id: index.toString(),
                         type: 'default',
                         text: `${c.first_name} ${c.last_name || ''} ${c.username ? '@' + c.username : ''}`
@@ -537,7 +545,7 @@ async function requestContactFromTelegram() {
                     
                     // Если пользователь выбрал контакт
                     if (result && result.id !== 'cancel' && !isNaN(parseInt(result.id))) {
-                        const selectedContact = tgApp.contacts[parseInt(result.id)];
+                        const selectedContact = contacts[parseInt(result.id)];
                         
                         if (selectedContact) {
                             const newContact = {
@@ -556,18 +564,10 @@ async function requestContactFromTelegram() {
                     }
                 }
             }
-        } else {
-            // Если доступ не получен, показываем сообщение
-            tgApp.showPopup({
-                title: 'Доступ запрещен',
-                message: 'Для выбора контакта необходимо разрешить доступ к контактам',
-                buttons: [{type: 'ok'}]
-            });
+        } catch (popupError) {
+            console.error('Ошибка при показе списка контактов:', popupError);
         }
         
-        return null;
-    } catch (error) {
-        console.error('Ошибка при запросе контакта:', error);
         return null;
     }
 }
@@ -577,21 +577,6 @@ async function showContactsDropdown() {
     // Показываем индикатор загрузки в выпадающем списке
     contactsDropdown.innerHTML = '<div class="loading-contacts">Загрузка контактов...</div>';
     contactsDropdown.classList.add('active');
-    
-    // Запрашиваем доступ к контактам, если его еще нет
-    let hasAccessToContacts = false;
-    
-    try {
-        // Проверяем, есть ли у нас уже доступ к контактам
-        if (tgApp.contacts && Array.isArray(tgApp.contacts) && tgApp.contacts.length > 0) {
-            hasAccessToContacts = true;
-        } else {
-            // Запрашиваем доступ к контактам
-            hasAccessToContacts = await tgApp.requestWriteAccess();
-        }
-    } catch (error) {
-        console.log('Ошибка при запросе доступа к контактам:', error);
-    }
     
     // Получаем контакты
     const contacts = await getContacts();
@@ -672,7 +657,7 @@ async function showContactsDropdown() {
         // Добавляем кнопку для выбора контакта через нативный интерфейс Telegram
         const selectContactButton = document.createElement('div');
         selectContactButton.className = 'select-contact-btn';
-        selectContactButton.innerHTML = '<i class="fas fa-user-plus"></i> Выбрать другой контакт';
+        selectContactButton.innerHTML = '<i class="fas fa-user-plus"></i> Выбрать контакт из Telegram';
         selectContactButton.addEventListener('click', async () => {
             try {
                 // Скрываем выпадающий список на время выбора контакта
@@ -705,13 +690,6 @@ async function showContactsDropdown() {
                         showContactsDropdown();
                     }, 300);
                 } else {
-                    // Если контакт не получен, показываем сообщение и снова открываем список
-                    tgApp.showPopup({
-                        title: 'Контакт не выбран',
-                        message: 'Пожалуйста, выберите контакт или введите имя пользователя вручную',
-                        buttons: [{type: 'ok'}]
-                    });
-                    
                     // Снова показываем выпадающий список
                     showContactsDropdown();
                 }
@@ -754,6 +732,61 @@ async function showContactsDropdown() {
         noContacts.className = 'no-contacts';
         noContacts.textContent = 'Нет доступных контактов';
         contactsDropdown.appendChild(noContacts);
+        
+        // Добавляем кнопку для выбора контакта через нативный интерфейс Telegram
+        const selectContactButton = document.createElement('div');
+        selectContactButton.className = 'select-contact-btn';
+        selectContactButton.innerHTML = '<i class="fas fa-user-plus"></i> Выбрать контакт из Telegram';
+        selectContactButton.addEventListener('click', async () => {
+            try {
+                // Скрываем выпадающий список на время выбора контакта
+                hideContactsDropdown();
+                
+                // Запрашиваем контакт через Telegram API
+                const contact = await requestContactFromTelegram();
+                
+                if (contact) {
+                    // Если у контакта есть username, используем его
+                    if (contact.username) {
+                        usernameInput.value = contact.username;
+                    } 
+                    // Если username нет, но есть имя, используем его
+                    else if (contact.first_name) {
+                        // Сохраняем контакт в любом случае
+                        saveContact(contact);
+                        
+                        // Если есть имя и фамилия, используем их вместе
+                        if (contact.last_name) {
+                            usernameInput.value = `${contact.first_name} ${contact.last_name}`;
+                        } else {
+                            usernameInput.value = contact.first_name;
+                        }
+                    }
+                    
+                    // Добавляем небольшую задержку перед обновлением списка
+                    setTimeout(() => {
+                        // Обновляем список контактов
+                        showContactsDropdown();
+                    }, 300);
+                } else {
+                    // Снова показываем выпадающий список
+                    showContactsDropdown();
+                }
+            } catch (error) {
+                console.error('Ошибка при запросе контакта:', error);
+                
+                // Показываем сообщение об ошибке
+                tgApp.showPopup({
+                    title: 'Ошибка',
+                    message: 'Не удалось получить контакт. Пожалуйста, введите имя пользователя вручную',
+                    buttons: [{type: 'ok'}]
+                });
+                
+                // Снова показываем выпадающий список
+                showContactsDropdown();
+            }
+        });
+        contactsDropdown.appendChild(selectContactButton);
     }
     
     // Добавляем обработчик клика вне выпадающего списка для его скрытия
