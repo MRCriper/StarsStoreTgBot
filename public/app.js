@@ -539,11 +539,15 @@ async function requestContactFromTelegram() {
         // Проверяем версию Telegram для использования правильного API
         if (tgApp.isVersionAtLeast('6.9')) {
             try {
+                // Показываем индикатор загрузки
+                const loadingPopup = tgApp.showPopup({
+                    title: 'Загрузка',
+                    message: 'Открываем выбор контакта...',
+                    buttons: []
+                });
+                
                 // Используем официальный API для открытия выбора контакта
                 const result = await new Promise((resolve) => {
-                    // Создаем уникальный идентификатор запроса
-                    const reqId = `contact_${Date.now()}`;
-                    
                     // Функция для обработки события выбора контакта
                     const handleContactSelected = (event) => {
                         try {
@@ -593,7 +597,14 @@ async function requestContactFromTelegram() {
                     }, 10000); // 10 секунд таймаут
                 });
                 
+                // Закрываем индикатор загрузки
+                if (loadingPopup && loadingPopup.close) {
+                    loadingPopup.close();
+                }
+                
                 if (result) {
+                    console.log('Получен контакт:', result);
+                    
                     // Создаем объект контакта
                     const newContact = {
                         first_name: result.first_name || '',
@@ -609,7 +620,7 @@ async function requestContactFromTelegram() {
                     return newContact;
                 }
             } catch (contactError) {
-                console.error('Ошибка при запросе контакта:', contactError);
+                console.error('Ошибка при запросе контакта через web_app_open_contact_picker:', contactError);
                 
                 // Пробуем альтернативный метод - запрос контакта через requestContact
                 try {
@@ -624,11 +635,15 @@ async function requestContactFromTelegram() {
                     });
                     
                     if (result && result.id === 'allow') {
+                        // Показываем индикатор загрузки
+                        const loadingPopup = tgApp.showPopup({
+                            title: 'Загрузка',
+                            message: 'Запрашиваем контакт...',
+                            buttons: []
+                        });
+                        
                         // Используем метод requestContact для получения контакта
                         const contactData = await new Promise((resolve) => {
-                            // Создаем уникальный идентификатор запроса
-                            const reqId = `request_contact_${Date.now()}`;
-                            
                             // Функция для обработки события получения контакта
                             const handleContactReceived = (event) => {
                                 try {
@@ -678,7 +693,14 @@ async function requestContactFromTelegram() {
                             }, 10000); // 10 секунд таймаут
                         });
                         
+                        // Закрываем индикатор загрузки
+                        if (loadingPopup && loadingPopup.close) {
+                            loadingPopup.close();
+                        }
+                        
                         if (contactData) {
+                            console.log('Получен контакт через requestContact:', contactData);
+                            
                             // Создаем объект контакта
                             const newContact = {
                                 first_name: contactData.first_name || '',
