@@ -177,8 +177,35 @@ backToStep1Btn.addEventListener('click', () => {
 
 // Функция для отображения контактов в выпадающем списке
 async function showContactsDropdown() {
-    // Получаем контакты
-    const contacts = await getContacts();
+    // Получаем контакты без автоматического запроса
+    let contacts = [];
+    
+    // Пробуем получить контакты из localStorage
+    try {
+        const savedContacts = localStorage.getItem('savedContacts');
+        if (savedContacts) {
+            contacts = JSON.parse(savedContacts);
+        }
+    } catch (storageError) {
+        console.log('Ошибка при получении сохраненных контактов:', storageError);
+    }
+    
+    // Добавляем текущего пользователя, если он есть
+    const user = tgApp.initDataUnsafe?.user;
+    if (user && user.username) {
+        // Проверяем, есть ли уже такой пользователь в списке
+        const userExists = contacts.some(contact => 
+            contact.username === user.username && contact.is_current_user);
+        
+        if (!userExists) {
+            contacts.unshift({
+                first_name: user.first_name || '',
+                last_name: user.last_name || '',
+                username: user.username,
+                is_current_user: true
+            });
+        }
+    }
     
     // Очищаем выпадающий список
     contactsDropdown.innerHTML = '';
@@ -198,7 +225,7 @@ async function showContactsDropdown() {
     newContactItem.innerHTML = '<i class="fas fa-plus-circle"></i> Выбрать другой контакт';
     newContactItem.addEventListener('click', async () => {
         try {
-            // Запрашиваем контакт у пользователя
+            // Запрашиваем контакт у пользователя только при явном клике на кнопку
             if (tgApp.isVersionAtLeast('6.9')) {
                 const result = await tgApp.requestContact();
                 if (result) {
@@ -283,7 +310,9 @@ async function showContactsDropdown() {
 
 // Добавляем обработчик фокуса для поля ввода имени пользователя
 usernameInput.addEventListener('focus', () => {
-    // Показываем выпадающий список контактов
+    // Показываем выпадающий список контактов без автоматического запроса
+    contactsDropdown.style.display = 'block';
+    // Заполняем выпадающий список контактами
     showContactsDropdown();
 });
 
