@@ -177,7 +177,11 @@ backToStep1Btn.addEventListener('click', () => {
 
 // Функция для отображения контактов в выпадающем списке
 async function showContactsDropdown() {
-    // Получаем контакты без автоматического запроса
+    // Показываем индикатор загрузки
+    contactsDropdown.innerHTML = '<div class="loading-contacts">Загрузка контактов...</div>';
+    contactsDropdown.style.display = 'block';
+    
+    // Получаем контакты
     let contacts = [];
     
     // Пробуем получить контакты из localStorage
@@ -202,8 +206,43 @@ async function showContactsDropdown() {
                 first_name: user.first_name || '',
                 last_name: user.last_name || '',
                 username: user.username,
+                photo_url: user.photo_url || '',
                 is_current_user: true
             });
+        }
+    }
+    
+    // Запрашиваем доступ к контактам, если их мало или это первый запуск
+    if (contacts.length <= 1 && tgApp.isVersionAtLeast('6.9')) {
+        try {
+            // Запрашиваем доступ к контактам
+            await tgApp.requestContactAccess();
+            
+            // Запрашиваем контакт пользователя
+            const result = await tgApp.requestContact();
+            if (result && result.contact) {
+                // Создаем объект контакта
+                const contact = {
+                    first_name: result.contact.first_name || '',
+                    last_name: result.contact.last_name || '',
+                    username: result.contact.username || '',
+                    phone_number: result.contact.phone_number || '',
+                    photo_url: result.contact.photo_url || '',
+                    is_current_user: false
+                };
+                
+                // Добавляем контакт, если его еще нет в списке
+                const contactExists = contacts.some(c => 
+                    c.username === contact.username && !c.is_current_user);
+                
+                if (!contactExists && contact.username) {
+                    contacts.push(contact);
+                    // Сохраняем обновленный список контактов
+                    saveContact(contact);
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка при запросе доступа к контактам:', error);
         }
     }
     
@@ -228,13 +267,14 @@ async function showContactsDropdown() {
             // Запрашиваем контакт у пользователя только при явном клике на кнопку
             if (tgApp.isVersionAtLeast('6.9')) {
                 const result = await tgApp.requestContact();
-                if (result) {
+                if (result && result.contact) {
                     // Создаем объект контакта
                     const contact = {
-                        first_name: result.first_name || '',
-                        last_name: result.last_name || '',
-                        username: result.username || '',
-                        phone_number: result.phone_number || '',
+                        first_name: result.contact.first_name || '',
+                        last_name: result.contact.last_name || '',
+                        username: result.contact.username || '',
+                        phone_number: result.contact.phone_number || '',
+                        photo_url: result.contact.photo_url || '',
                         is_current_user: false
                     };
                     
@@ -281,8 +321,11 @@ async function showContactsDropdown() {
         // Добавляем имя пользователя, если оно есть
         const usernameText = contact.username ? `@${contact.username}` : '';
         
-        // Создаем HTML для элемента контакта
+        // Создаем HTML для элемента контакта с аватаркой
         contactItem.innerHTML = `
+            <div class="contact-avatar">
+                ${contact.photo_url ? `<img src="${contact.photo_url}" alt="${contactName}">` : '<div class="default-avatar"></div>'}
+            </div>
             <div class="contact-info">
                 <div class="contact-name">${contactName}</div>
                 <div class="contact-username">${usernameText}</div>
@@ -303,17 +346,58 @@ async function showContactsDropdown() {
         // Добавляем элемент в выпадающий список
         contactsDropdown.appendChild(contactItem);
     });
-    
-    // Показываем выпадающий список
-    contactsDropdown.style.display = 'block';
 }
 
 // Добавляем обработчик фокуса для поля ввода имени пользователя
 usernameInput.addEventListener('focus', () => {
-    // Показываем выпадающий список контактов без автоматического запроса
-    contactsDropdown.style.display = 'block';
-    // Заполняем выпадающий список контактами из localStorage без запроса нового контакта
+    // Показываем выпадающий список контактов
     showContactsDropdown();
+});
+
+// Функция для фильтрации контактов по поисковому запросу
+function filterContacts(searchText) {
+    const contactItems = contactsDropdown.querySelectorAll('.contact-item:not(.new-contact)');
+    const searchLower = searchText.toLowerCase();
+    
+    contactItems.forEach(item => {
+        const name = item.querySelector('.contact-name').textContent.toLowerCase();
+        const username = item.querySelector('.contact-username').textContent.toLowerCase();
+        
+        // Проверяем, содержит ли имя или username поисковый запрос
+        if (name.includes(searchLower) || username.includes(searchLower)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    // Показываем сообщение, если нет результатов
+    const visibleItems = contactsDropdown.querySelectorAll('.contact-item:not(.new-contact):not([style*="display: none"])');
+    const noResultsElement = contactsDropdown.querySelector('.no-results');
+    
+    if (visibleItems.length === 0 && searchText) {
+        if (!noResultsElement) {
+            const noResults = document.createElement('div');
+            noResults.className = 'contact-item no-results';
+            noResults.textContent = 'Нет результатов';
+            contactsDropdown.appendChild(noResults);
+        } else {
+            noResultsElement.style.display = 'block';
+        }
+    } else if (noResultsElement) {
+        noResultsElement.style.display = 'none';
+    }
+}
+
+// Добавляем обработчик ввода для поля имени пользователя
+usernameInput.addEventListener('input', () => {
+    // Если выпадающий список скрыт, показываем его
+    if (contactsDropdown.style.display !== 'block') {
+        showContactsDropdown();
+    }
+    
+    // Фильтруем контакты по введенному тексту
+    filterContacts(usernameInput.value);
 });
 
 // Добавляем обработчик клика вне выпадающего списка для его скрытия

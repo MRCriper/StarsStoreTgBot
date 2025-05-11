@@ -597,7 +597,7 @@ input[type="text"]:focus {
 }
 
 .contacts-dropdown.active {
-    max-height: 200px;
+    max-height: 250px;
     opacity: 1;
 }
 
@@ -627,8 +627,8 @@ input[type="text"]:focus {
 }
 
 .contact-avatar {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     margin-right: 12px;
     background-color: var(--primary-color);
@@ -638,10 +638,33 @@ input[type="text"]:focus {
     color: white;
     font-weight: 600;
     font-size: 14px;
+    overflow: hidden;
+}
+
+.contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.default-avatar {
+    width: 100%;
+    height: 100%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.default-avatar::before {
+    content: '👤';
 }
 
 .contact-info {
     flex: 1;
+    overflow: hidden;
 }
 
 .contact-name {
@@ -651,6 +674,9 @@ input[type="text"]:focus {
     display: flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .current-user-badge {
@@ -665,6 +691,9 @@ input[type="text"]:focus {
 .contact-username {
     font-size: 14px;
     color: var(--accent-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .contact-phone {
@@ -678,6 +707,14 @@ input[type="text"]:focus {
     text-align: center;
     color: var(--tg-theme-hint-color);
     font-style: italic;
+}
+
+.no-results {
+    text-align: center;
+    color: var(--tg-theme-hint-color);
+    font-style: italic;
+    justify-content: center;
+    padding: 16px;
 }
 
 .loading-contacts {
