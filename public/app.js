@@ -176,6 +176,12 @@ backToStep1Btn.addEventListener('click', () => {
 
 // Инициализация выпадающего списка контактов
 function initContactsDropdown() {
+    // Устанавливаем начальное значение поля ввода - текущий пользователь
+    const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
+    if (currentUser && currentUser.username) {
+        usernameInput.value = currentUser.username;
+    }
+    
     // Добавляем обработчик фокуса для поля ввода имени пользователя
     usernameInput.addEventListener('focus', showContactsDropdown);
     
@@ -186,110 +192,33 @@ function initContactsDropdown() {
     document.addEventListener('click', handleOutsideClick);
 }
 
-// Получение контактов из Telegram API
+// Функция для получения данных текущего пользователя из Telegram API
 async function fetchContacts() {
     try {
         // Получаем данные текущего пользователя
-        const user = tgApp.initDataUnsafe?.user;
-        let contacts = [];
+        const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
         
-        // Добавляем текущего пользователя в начало списка
-        if (user && user.username) {
-            contacts.push({
-                first_name: user.first_name || '',
-                last_name: user.last_name || '',
-                username: user.username,
-                photo_url: user.photo_url || '',
-                is_current_user: true
-            });
-        }
-        
-        // Проверяем поддержку API контактов
-        if (!tgApp.isVersionAtLeast || !tgApp.isVersionAtLeast('6.9')) {
-            // Если версия Telegram не поддерживает API контактов
-            console.log('Версия Telegram не поддерживает API контактов');
-            contacts.push({
-                first_name: 'Ошибка доступа к контактам',
-                last_name: '',
-                username: '',
-                is_current_user: false,
+        if (!currentUser) {
+            return [{
+                first_name: 'Не удалось получить данные пользователя',
                 is_error_message: true
-            });
-            
-            // Сохраняем контакты в localStorage
-            saveContactsToCache(contacts);
-            return contacts;
+            }];
         }
         
-        try {
-            // Запрашиваем доступ к контактам
-            const accessResult = await tgApp.requestContactAccess();
-            
-            if (!accessResult) {
-                // Если пользователь отказал в доступе к контактам
-                console.log('Пользователь отказал в доступе к контактам');
-                contacts.push({
-                    first_name: 'Ошибка доступа к контактам',
-                    last_name: '',
-                    username: '',
-                    is_current_user: false,
-                    is_error_message: true
-                });
-                
-                // Сохраняем контакты в localStorage
-                saveContactsToCache(contacts);
-                return contacts;
-            }
-            
-            // Получаем список контактов
-            const contactsList = await tgApp.getContacts();
-            
-            if (contactsList && contactsList.length > 0) {
-                // Обрабатываем полученные контакты
-                contactsList.forEach(contact => {
-                    if (contact.username) {
-                        contacts.push({
-                            first_name: contact.first_name || '',
-                            last_name: contact.last_name || '',
-                            username: contact.username,
-                            photo_url: contact.photo_url || '',
-                            is_current_user: false
-                        });
-                    }
-                });
-            }
-        } catch (apiError) {
-            console.error('Ошибка при работе с API контактов:', apiError);
-            contacts.push({
-                first_name: 'Ошибка доступа к контактам',
-                last_name: '',
-                username: '',
-                is_current_user: false,
-                is_error_message: true
-            });
-        }
-        
-        // Если нет контактов, добавляем сообщение
-        if (contacts.length === 0 || (contacts.length === 1 && contacts[0].is_current_user)) {
-            contacts.push({
-                first_name: 'Нет доступных контактов',
-                last_name: '',
-                username: '',
-                is_current_user: false,
-                is_error_message: true
-            });
-        }
-        
-        // Сохраняем контакты в localStorage
-        saveContactsToCache(contacts);
-        return contacts;
-    } catch (error) {
-        console.error('Ошибка при получении контактов:', error);
+        // Возвращаем информацию о текущем пользователе
         return [{
-            first_name: 'Ошибка при получении контактов',
-            last_name: '',
-            username: '',
-            is_current_user: false,
+            id: currentUser.id,
+            first_name: currentUser.first_name,
+            last_name: currentUser.last_name,
+            username: currentUser.username,
+            photo_url: currentUser.photo_url,
+            is_current_user: true,
+            is_error_message: false
+        }];
+    } catch (error) {
+        console.error('Ошибка при получении данных пользователя:', error);
+        return [{
+            first_name: 'Ошибка при получении данных пользователя',
             is_error_message: true
         }];
     }
@@ -298,7 +227,7 @@ async function fetchContacts() {
 // Отображение выпадающего списка контактов
 async function showContactsDropdown() {
     // Показываем индикатор загрузки
-    contactsDropdown.innerHTML = '<div class="loading-contacts">Загрузка контактов...</div>';
+    contactsDropdown.innerHTML = '<div class="loading-contacts">Загрузка данных</div>';
     contactsDropdown.classList.add('active');
     
     // Пробуем получить контакты из кэша
@@ -320,8 +249,40 @@ function renderContacts(contacts) {
     
     // Если контактов нет, показываем сообщение
     if (!contacts || contacts.length === 0) {
-        contactsDropdown.innerHTML = '<div class="contact-item error-message">Нет доступных контактов</div>';
+        contactsDropdown.innerHTML = '<div class="contact-item error-message">Нет доступных данных</div>';
         return;
+    }
+    
+    // Получаем текущее значение поля ввода
+    const inputValue = usernameInput.value.trim().toLowerCase();
+    const isSearching = inputValue && !inputValue.startsWith('@') && inputValue !== contacts[0].username;
+    
+    // Если пользователь ввел текст для поиска, проверяем его как username
+    if (isSearching) {
+        // Создаем элемент для отображения результата поиска
+        const searchItem = document.createElement('div');
+        searchItem.className = 'contact-item';
+        
+        // Создаем HTML для результата поиска
+        let searchHTML = '<div class="contact-avatar"><div class="default-avatar"></div></div>';
+        searchHTML += '<div class="contact-info">';
+        searchHTML += `<div class="contact-name">Пользователь с username @${inputValue}</div>`;
+        searchHTML += `<div class="contact-username">@${inputValue}</div>`;
+        searchHTML += '</div>';
+        
+        searchItem.innerHTML = searchHTML;
+        
+        // Добавляем обработчик клика для выбора результата поиска
+        searchItem.addEventListener('click', () => {
+            // Устанавливаем значение в поле ввода
+            usernameInput.value = inputValue;
+            // Скрываем выпадающий список
+            contactsDropdown.classList.remove('active');
+            // Убираем фокус с поля ввода
+            usernameInput.blur();
+        });
+        
+        contactsDropdown.appendChild(searchItem);
     }
     
     // Проверяем, есть ли в списке только сообщения об ошибках
@@ -391,78 +352,11 @@ function renderContacts(contacts) {
     }
 
     
-    // Добавляем кнопку для выбора нового контакта
-    const newContactItem = document.createElement('div');
-    newContactItem.className = 'contact-item new-contact';
-    newContactItem.innerHTML = '<i class="fas fa-plus-circle"></i> Выбрать другой контакт';
-    newContactItem.addEventListener('click', async () => {
-        try {
-            // Запрашиваем контакт у пользователя только при явном клике на кнопку
-            if (tgApp.isVersionAtLeast('6.9')) {
-                // Сначала запрашиваем доступ к контактам
-                const accessResult = await tgApp.requestContactAccess();
-                
-                if (accessResult) {
-                    // Затем запрашиваем выбор контакта
-                    try {
-                        const result = await tgApp.requestContact();
-                        if (result && result.contact) {
-                            // Создаем объект контакта
-                            const contact = {
-                                first_name: result.contact.first_name || '',
-                                last_name: result.contact.last_name || '',
-                                username: result.contact.username || '',
-                                phone_number: result.contact.phone_number || '',
-                                photo_url: result.contact.photo_url || '',
-                                is_current_user: false
-                            };
-                            
-                            // Сохраняем контакт
-                            saveContact(contact);
-                            
-                            // Устанавливаем имя пользователя в поле ввода
-                            if (contact.username) {
-                                usernameInput.value = contact.username;
-                            }
-                            
-                            // Скрываем выпадающий список
-                            hideContactsDropdown();
-                        }
-                    } catch (contactError) {
-                        console.error('Ошибка при запросе контакта:', contactError);
-                        // Показываем сообщение об ошибке
-                        tgApp.showPopup({
-                            title: 'Ошибка',
-                            message: 'Не удалось получить контакт. Пожалуйста, введите имя пользователя вручную',
-                            buttons: [{type: 'ok'}]
-                        });
-                    }
-                } else {
-                    // Если пользователь отказал в доступе к контактам
-                    tgApp.showPopup({
-                        title: 'Доступ запрещен',
-                        message: 'Вы отказали в доступе к контактам. Пожалуйста, введите имя пользователя вручную',
-                        buttons: [{type: 'ok'}]
-                    });
-                }
-            } else {
-                // Если API не поддерживается, показываем сообщение
-                tgApp.showPopup({
-                    title: 'Ошибка',
-                    message: 'Ваша версия Telegram не поддерживает выбор контактов',
-                    buttons: [{type: 'ok'}]
-                });
-            }
-        } catch (error) {
-            console.error('Ошибка при запросе доступа к контактам:', error);
-            tgApp.showPopup({
-                title: 'Ошибка',
-                message: 'Не удалось получить доступ к контактам. Пожалуйста, введите имя пользователя вручную',
-                buttons: [{type: 'ok'}]
-            });
-        }
-    });
-    contactsDropdown.appendChild(newContactItem);
+    // Добавляем подсказку о вводе username
+    const usernameHint = document.createElement('div');
+    usernameHint.className = 'username-hint';
+    usernameHint.innerHTML = 'Введите username пользователя для поиска';
+    contactsDropdown.appendChild(usernameHint);
 }
 
 // Фильтрация контактов при вводе
@@ -574,7 +468,7 @@ initContactsDropdown();
 
 // Обработчик для кнопки "Купить"
 buyButton.addEventListener('click', () => {
-    const username = usernameInput.value.trim();
+    let username = usernameInput.value.trim();
     
     // Проверка ввода
     if (!username) {
@@ -593,6 +487,23 @@ buyButton.addEventListener('click', () => {
             buttons: [{type: 'ok'}]
         });
         
+        return;
+    }
+    
+    // Удаляем символ @ в начале, если он есть
+    if (username.startsWith('@')) {
+        username = username.substring(1);
+    }
+    
+    // Проверяем, что имя пользователя соответствует требованиям Telegram
+    // (5-32 символа, только буквы, цифры и подчеркивания)
+    const usernameRegex = /^[a-zA-Z0-9_]{5,32}$/;
+    if (!usernameRegex.test(username)) {
+        tgApp.showPopup({
+            title: 'Ошибка',
+            message: 'Имя пользователя должно содержать от 5 до 32 символов и может включать только буквы, цифры и подчеркивания',
+            buttons: [{type: 'ok'}]
+        });
         return;
     }
     
