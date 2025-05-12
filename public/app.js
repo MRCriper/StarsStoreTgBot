@@ -222,7 +222,7 @@ async function fetchCurrentUser() {
         // Возвращаем информацию о текущем пользователе
         return {
             id: currentUser.id,
-            first_name: currentUser.first_name,
+            first_name: currentUser.first_name || (currentUser.username ? currentUser.username : 'Пользователь'),
             last_name: currentUser.last_name,
             username: currentUser.username,
             photo_url: currentUser.photo_url,
@@ -270,7 +270,7 @@ async function searchUserByUsername(username) {
         return {
             id: data.user.id,
             username: data.user.username,
-            first_name: data.user.first_name || 'Пользователь',
+            first_name: data.user.first_name || (data.user.username ? data.user.username : 'Пользователь'),
             last_name: data.user.last_name,
             photo_url: data.user.photo_url,
             is_private: Boolean(data.user.is_private) // Явно приводим к булевому значению
@@ -329,8 +329,16 @@ function renderContacts(contacts) {
         }
         
         // Формируем имя контакта
-        let contactName = contact.first_name || 'Пользователь';
-        if (contact.last_name) contactName += ' ' + contact.last_name;
+        let contactName;
+        if (contact.first_name) {
+            contactName = contact.first_name;
+            if (contact.last_name) contactName += ' ' + contact.last_name;
+        } else if (contact.username) {
+            contactName = '@' + contact.username;
+        } else {
+            contactName = 'Пользователь';
+        }
+        
         if (contact.is_current_user) contactName += ' (Вы)';
         
         // Отдельная метка для приватного аккаунта

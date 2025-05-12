@@ -56,7 +56,7 @@ app.get('/api/search-user', async (req, res) => {
       const userData = {
         id: chatInfo.id,
         username: chatInfo.username,
-        first_name: chatInfo.first_name || 'Пользователь',
+        first_name: chatInfo.first_name || (chatInfo.username ? chatInfo.username : 'Пользователь'),
         last_name: chatInfo.last_name,
         photo_url: photoUrl,
         is_private: false
@@ -120,7 +120,7 @@ app.get('/api/search-user', async (req, res) => {
             user: {
               id: chatInfo.id,
               username: chatInfo.username || cleanUsername,
-              first_name: chatInfo.first_name || 'Пользователь',
+              first_name: chatInfo.first_name || (chatInfo.username ? chatInfo.username : cleanUsername),
               last_name: chatInfo.last_name,
               is_private: true,
               photo_url: null
@@ -134,7 +134,7 @@ app.get('/api/search-user', async (req, res) => {
             success: true,
             user: {
               username: cleanUsername,
-              first_name: 'Пользователь',
+              first_name: cleanUsername, // Используем username вместо "Пользователь"
               is_private: true,
               photo_url: null
             }
