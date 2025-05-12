@@ -242,18 +242,168 @@ main {
     box-shadow: 0 0 10px rgba(157, 113, 234, 0.5);
 }
 
-/* ===== STEPS ===== */
-.step {
+/* ===== PAGES AND STEPS ===== */
+.page, .step {
     display: none;
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-.step.active {
+.page.active, .step.active {
     display: block;
     opacity: 1 !important;
     transform: translateY(0);
+}
+
+/* ===== REFERRAL PAGE ===== */
+.referral-card {
+    margin-bottom: 30px;
+}
+
+.referral-title {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: var(--primary-light);
+    text-align: center;
+}
+
+.referral-link-container {
+    display: flex;
+    margin-bottom: 24px;
+    gap: 10px;
+}
+
+.referral-link-container input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid rgba(157, 113, 234, 0.3);
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    background-color: rgba(20, 20, 50, 0.5);
+    color: var(--tg-theme-text-color, #ffffff);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.share-button {
+    padding: 12px 16px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 0 15px rgba(157, 113, 234, 0.4);
+    white-space: nowrap;
+}
+
+.share-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 20px rgba(157, 113, 234, 0.6);
+}
+
+.referral-info {
+    background-color: rgba(157, 113, 234, 0.15);
+    border-radius: var(--border-radius-sm);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.referral-info h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--tg-theme-text-color, #ffffff);
+}
+
+.referral-benefits {
+    list-style: none;
+    padding: 0;
+}
+
+.referral-benefits li {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.referral-benefits li i {
+    color: var(--success-color);
+    margin-right: 10px;
+    margin-top: 4px;
+}
+
+.referral-discounts, .referral-list {
+    margin-bottom: 24px;
+}
+
+.referral-discounts h3, .referral-list h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--tg-theme-text-color, #ffffff);
+}
+
+.discounts-container, .referrals-container {
+    background-color: rgba(20, 20, 50, 0.5);
+    border-radius: var(--border-radius-sm);
+    padding: 16px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.no-discounts, .no-referrals {
+    text-align: center;
+    color: var(--tg-theme-hint-color, #a0a0c0);
+    font-style: italic;
+    padding: 20px 0;
+}
+
+.discount-item, .referral-item {
+    background-color: rgba(157, 113, 234, 0.1);
+    border-radius: var(--border-radius-sm);
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.discount-item:last-child, .referral-item:last-child {
+    margin-bottom: 0;
+}
+
+.discount-info, .referral-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.discount-percent {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.discount-reason, .referral-username {
+    font-size: 14px;
+    color: var(--tg-theme-text-color, #ffffff);
+}
+
+.discount-date, .referral-stars {
+    font-size: 12px;
+    color: var(--tg-theme-hint-color, #a0a0c0);
+}
+
+.referral-stars {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--star-color);
+    display: flex;
+    align-items: center;
+}
+
+.referral-stars i {
+    margin-right: 5px;
 }
 
 /* ===== PACKAGES ===== */

@@ -11,18 +11,18 @@
 </head>
 <body class="space-background">
     <!-- Навигационные стрелки для свайпа -->
-    <div class="swipe-navigation left-nav">
+    <div class="swipe-navigation left-nav" id="referral-nav">
         <div class="nav-arrow">
             <i class="fas fa-chevron-left"></i>
         </div>
         <div class="nav-label">Рефералка</div>
     </div>
     
-    <div class="swipe-navigation right-nav">
+    <div class="swipe-navigation right-nav" id="main-nav">
         <div class="nav-arrow">
             <i class="fas fa-chevron-right"></i>
         </div>
-        <div class="nav-label">Биржа</div>
+        <div class="nav-label">Главная</div>
     </div>
     
     <div class="app-container">
@@ -35,8 +35,45 @@
         </header>
         
         <main>
+            <!-- Страница рефералов -->
+            <section id="referral-page" class="page">
+                <h2 class="section-title"><i class="fas fa-users"></i> Реферальная система</h2>
+                
+                <div class="card referral-card">
+                    <h3 class="referral-title">Ваша реферальная ссылка</h3>
+                    <div class="referral-link-container">
+                        <input type="text" id="referral-link" readonly>
+                        <button id="share-button" class="share-button">
+                            <i class="fas fa-share-alt"></i> Поделиться
+                        </button>
+                    </div>
+                    
+                    <div class="referral-info">
+                        <h3>Как это работает?</h3>
+                        <ul class="referral-benefits">
+                            <li><i class="fas fa-check"></i> За каждые 100 звёзд, купленных рефералами, вы получаете скидку 5%</li>
+                            <li><i class="fas fa-check"></i> Каждая скидка 5% действует только на одну покупку</li>
+                            <li><i class="fas fa-check"></i> Скидки накапливаются и применяются последовательно</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="referral-discounts">
+                        <h3>Ваши скидки</h3>
+                        <div id="discounts-container" class="discounts-container">
+                            <div class="no-discounts">У вас пока нет доступных скидок</div>
+                        </div>
+                    </div>
+                    
+                    <div class="referral-list">
+                        <h3>Ваши рефералы</h3>
+                        <div id="referrals-container" class="referrals-container">
+                            <div class="no-referrals">У вас пока нет рефералов</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
             <!-- Шаг 1: Выбор количества звезд -->
-            <section id="step-1" class="step active animate__animated animate__fadeIn">
+            <section id="step-1" class="step active animate__animated animate__fadeIn page" id="main-page">
                 <h2 class="section-title"><span class="step-number">1</span> Укажите количество звёзд</h2>
                 
                 <div class="custom-package">

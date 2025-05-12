@@ -26,6 +26,9 @@ tgApp.enableClosingConfirmation();
 tgApp.expand();
 tgApp.ready();
 
+// Переменные для навигации между страницами
+let currentPage = 'step-1';
+
 // Получаем элементы DOM
 const usernameInput = document.getElementById('username');
 const starsInput = document.getElementById('stars');
@@ -44,6 +47,177 @@ const packages = document.querySelectorAll('.package');
 const loader = document.getElementById('loader');
 const contactsDropdown = document.getElementById('contacts-dropdown');
 
+// Элементы реферальной системы
+const referralPage = document.getElementById('referral-page');
+const referralNav = document.getElementById('referral-nav');
+const mainNav = document.getElementById('main-nav');
+const referralLink = document.getElementById('referral-link');
+const shareButton = document.getElementById('share-button');
+const discountsContainer = document.getElementById('discounts-container');
+const referralsContainer = document.getElementById('referrals-container');
+
+// Функция для переключения между страницами
+function switchToPage(pageName) {
+    // Скрываем все страницы
+    step1.classList.remove('active');
+    step2.classList.remove('active');
+    referralPage.classList.remove('active');
+    
+    // Показываем выбранную страницу
+    if (pageName === 'step-1') {
+        step1.classList.add('active');
+        currentPage = 'step-1';
+        
+        // Показываем обе навигационные стрелки
+        referralNav.style.display = 'flex';
+        mainNav.style.display = 'none'; // Скрываем правую стрелку на главной странице
+    } else if (pageName === 'step-2') {
+        step2.classList.add('active');
+        currentPage = 'step-2';
+        
+        // Показываем обе навигационные стрелки
+        referralNav.style.display = 'flex';
+        mainNav.style.display = 'none'; // Скрываем правую стрелку на странице шага 2
+    } else if (pageName === 'referral') {
+        referralPage.classList.add('active');
+        currentPage = 'referral';
+        
+        // На странице рефералов показываем только правую стрелку с надписью "Главная"
+        referralNav.style.display = 'none';
+        mainNav.style.display = 'flex';
+        mainNav.querySelector('.nav-label').textContent = 'Главная';
+        
+        // Загружаем данные реферальной системы
+        loadReferralData();
+    }
+}
+
+// Обработчики для навигационных стрелок
+referralNav.addEventListener('click', () => {
+    if (currentPage === 'step-1' || currentPage === 'step-2') {
+        switchToPage('referral');
+    }
+});
+
+mainNav.addEventListener('click', () => {
+    if (currentPage === 'referral') {
+        switchToPage('step-1');
+    }
+});
+
+// Функция для загрузки данных реферальной системы
+async function loadReferralData() {
+    try {
+        // Показываем индикатор загрузки
+        loader.classList.add('active');
+        
+        // Получаем данные о реферальной системе с сервера
+        const response = await fetch('/api/referral-data');
+        const data = await response.json();
+        
+        if (data.success) {
+            referralData = data.data;
+            
+            // Обновляем реферальную ссылку
+            referralLink.value = referralData.referralLink;
+            
+            // Обновляем список скидок
+            updateDiscountsList();
+            
+            // Обновляем список рефералов
+            updateReferralsList();
+        } else {
+            console.error('Ошибка при загрузке данных реферальной системы:', data.error);
+        }
+    } catch (error) {
+        console.error('Ошибка при загрузке данных реферальной системы:', error);
+    } finally {
+        // Скрываем индикатор загрузки
+        loader.classList.remove('active');
+    }
+}
+
+// Функция для обновления списка скидок
+function updateDiscountsList() {
+    // Очищаем контейнер скидок
+    discountsContainer.innerHTML = '';
+    
+    // Если скидок нет, показываем сообщение
+    if (!referralData.discounts || referralData.discounts.length === 0) {
+        discountsContainer.innerHTML = '<div class="no-discounts">У вас пока нет доступных скидок</div>';
+        return;
+    }
+    
+    // Добавляем скидки в контейнер
+    referralData.discounts.forEach(discount => {
+        const discountDate = new Date(discount.createdAt);
+        const formattedDate = discountDate.toLocaleDateString('ru-RU');
+        
+        const discountItem = document.createElement('div');
+        discountItem.className = 'discount-item';
+        discountItem.innerHTML = `
+            <div class="discount-info">
+                <div class="discount-percent">${discount.percent}% скидка</div>
+                <div class="discount-reason">${discount.reason}</div>
+                <div class="discount-date">Получена: ${formattedDate}</div>
+            </div>
+        `;
+        
+        discountsContainer.appendChild(discountItem);
+    });
+}
+
+// Функция для обновления списка рефералов
+function updateReferralsList() {
+    // Очищаем контейнер рефералов
+    referralsContainer.innerHTML = '';
+    
+    // Если рефералов нет, показываем сообщение
+    if (!referralData.referrals || referralData.referrals.length === 0) {
+        referralsContainer.innerHTML = '<div class="no-referrals">У вас пока нет рефералов</div>';
+        return;
+    }
+    
+    // Добавляем рефералов в контейнер
+    referralData.referrals.forEach(referral => {
+        const joinDate = new Date(referral.joinDate);
+        const formattedDate = joinDate.toLocaleDateString('ru-RU');
+        
+        const referralItem = document.createElement('div');
+        referralItem.className = 'referral-item';
+        referralItem.innerHTML = `
+            <div class="referral-info">
+                <div class="referral-username">@${referral.username}</div>
+                <div class="discount-date">Присоединился: ${formattedDate}</div>
+            </div>
+            <div class="referral-stars"><i class="fas fa-star"></i> ${referral.totalStarsPurchased}</div>
+        `;
+        
+        referralsContainer.appendChild(referralItem);
+    });
+}
+
+// Обработчик для кнопки "Поделиться"
+shareButton.addEventListener('click', () => {
+    // Копируем реферальную ссылку в буфер обмена
+    referralLink.select();
+    document.execCommand('copy');
+    
+    // Показываем уведомление об успешном копировании
+    tgApp.showPopup({
+        title: 'Ссылка скопирована',
+        message: 'Реферальная ссылка скопирована в буфер обмена. Теперь вы можете поделиться ею с друзьями.',
+        buttons: [{type: 'ok'}]
+    });
+    
+    // Если доступен нативный метод Telegram для шаринга, используем его
+    if (tgApp.showSharePopup) {
+        tgApp.showSharePopup({
+            text: `Присоединяйся к Stars Store и получай звезды для своего Telegram аккаунта! ${referralData.referralLink}`
+        });
+    }
+});
+
 // Цена за одну звезду (в рублях)
 const PRICE_PER_STAR = 1.5;
 
@@ -54,6 +228,13 @@ const MAX_STARS = 1000000;
 let selectedPackage = null;
 let selectedStars = 0;
 let selectedPrice = 0;
+
+// Данные реферальной системы
+let referralData = {
+    referralLink: '',
+    referrals: [],
+    discounts: []
+};
 
 // Форматирование цены
 function formatPrice(price) {

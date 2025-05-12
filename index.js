@@ -1,9 +1,71 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 // Импортируем бота
 const bot = require('./bot');
+
+// Путь к файлу с данными рефералов
+const REFERRALS_DATA_PATH = path.join(__dirname, 'referrals-data.json');
+const DISCOUNTS_DATA_PATH = path.join(__dirname, 'discounts-data.json');
+
+// Функция для загрузки данных рефералов
+function loadReferralsData() {
+  try {
+    if (fs.existsSync(REFERRALS_DATA_PATH)) {
+      const data = fs.readFileSync(REFERRALS_DATA_PATH, 'utf8');
+      return JSON.parse(data);
+    }
+    return {};
+  } catch (error) {
+    console.error('Ошибка при загрузке данных рефералов:', error);
+    return {};
+  }
+}
+
+// Функция для сохранения данных рефералов
+function saveReferralsData(data) {
+  try {
+    fs.writeFileSync(REFERRALS_DATA_PATH, JSON.stringify(data, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Ошибка при сохранении данных рефералов:', error);
+  }
+}
+
+// Функция для загрузки данных скидок
+function loadDiscountsData() {
+  try {
+    if (fs.existsSync(DISCOUNTS_DATA_PATH)) {
+      const data = fs.readFileSync(DISCOUNTS_DATA_PATH, 'utf8');
+      return JSON.parse(data);
+    }
+    return {};
+  } catch (error) {
+    console.error('Ошибка при загрузке данных скидок:', error);
+    return {};
+  }
+}
+
+// Функция для сохранения данных скидок
+function saveDiscountsData(data) {
+  try {
+    fs.writeFileSync(DISCOUNTS_DATA_PATH, JSON.stringify(data, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Ошибка при сохранении данных скидок:', error);
+  }
+}
+
+// Функция для расчета скидок на основе купленных звезд
+function calculateDiscounts(totalStars) {
+  // За каждые 100 звезд начисляется скидка 5%
+  return Math.floor(totalStars / 100);
+}
+
+// Функция для генерации реферальной ссылки
+function generateReferralLink(userId) {
+  return `https://t.me/stars_store_bot?start=ref_${userId}`;
+}
 
 // Создаем экземпляр Express
 const app = express();
@@ -16,6 +78,156 @@ app.use(express.json());
 // Маршрут для главной страницы
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API эндпоинт для получения данных реферальной системы
+app.get('/api/referral-data', (req, res) => {
+  try {
+    // Получаем идентификатор пользователя из заголовка Telegram WebApp
+    const initData = req.headers['x-telegram-web-app-init-data'];
+    
+    if (!initData) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+    
+    // Парсим данные инициализации
+    const initDataParams = new URLSearchParams(initData);
+    const user = JSON.parse(initDataParams.get('user') || '{}');
+    const userId = user.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User ID not found'
+      });
+    }
+    
+    // Загружаем данные рефералов
+    const referralsData = loadReferralsData();
+    const userReferrals = referralsData[userId] || {
+      userId: userId,
+      referrals: [],
+      totalReferralStars: 0
+    };
+    
+    // Загружаем данные скидок
+    const discountsData = loadDiscountsData();
+    const userDiscounts = discountsData[userId] || {
+      userId: userId,
+      discounts: [],
+      appliedDiscounts: []
+    };
+    
+    // Генерируем реферальную ссылку
+    const referralLink = generateReferralLink(userId);
+    
+    // Формируем ответ
+    const responseData = {
+      referralLink: referralLink,
+      referrals: userReferrals.referrals,
+      totalReferralStars: userReferrals.totalReferralStars,
+      discounts: userDiscounts.discounts
+    };
+    
+    return res.json({
+      success: true,
+      data: responseData
+    });
+  } catch (error) {
+    console.error('Ошибка при получении данных реферальной системы:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// API эндпоинт для применения скидки
+app.post('/api/apply-discount', express.json(), (req, res) => {
+  try {
+    // Получаем идентификатор пользователя из заголовка Telegram WebApp
+    const initData = req.headers['x-telegram-web-app-init-data'];
+    
+    if (!initData) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+    
+    // Парсим данные инициализации
+    const initDataParams = new URLSearchParams(initData);
+    const user = JSON.parse(initDataParams.get('user') || '{}');
+    const userId = user.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User ID not found'
+      });
+    }
+    
+    // Получаем данные заказа из тела запроса
+    const { orderId, price } = req.body;
+    
+    if (!orderId || !price) {
+      return res.status(400).json({
+        success: false,
+        error: 'Order ID and price are required'
+      });
+    }
+    
+    // Загружаем данные скидок
+    const discountsData = loadDiscountsData();
+    const userDiscounts = discountsData[userId] || {
+      userId: userId,
+      discounts: [],
+      appliedDiscounts: []
+    };
+    
+    // Проверяем, есть ли доступные скидки
+    if (userDiscounts.discounts.length === 0) {
+      return res.json({
+        success: true,
+        discount: 0,
+        finalPrice: price
+      });
+    }
+    
+    // Применяем первую доступную скидку
+    const discount = userDiscounts.discounts[0];
+    const discountAmount = (discount.percent / 100) * price;
+    const finalPrice = price - discountAmount;
+    
+    // Удаляем примененную скидку из списка доступных
+    userDiscounts.discounts.shift();
+    
+    // Добавляем скидку в список примененных
+    userDiscounts.appliedDiscounts.push({
+      percent: discount.percent,
+      appliedAt: new Date().toISOString(),
+      orderId: orderId
+    });
+    
+    // Сохраняем обновленные данные скидок
+    discountsData[userId] = userDiscounts;
+    saveDiscountsData(discountsData);
+    
+    return res.json({
+      success: true,
+      discount: discount.percent,
+      finalPrice: finalPrice
+    });
+  } catch (error) {
+    console.error('Ошибка при применении скидки:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
 });
 
 // API эндпоинт для поиска пользователя по username
