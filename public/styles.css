@@ -601,6 +601,24 @@ input[type="text"]:focus {
     opacity: 1;
 }
 
+/* Стили для сообщений об ошибках в выпадающем списке */
+.contact-item.error-message {
+    background-color: rgba(255, 100, 100, 0.1);
+    border-left: 3px solid rgba(255, 100, 100, 0.7);
+    cursor: default;
+}
+
+.contact-item.error-message .contact-name {
+    color: rgba(255, 180, 180, 0.9);
+    font-style: italic;
+}
+
+.contact-item.error-message:hover {
+    background-color: rgba(255, 100, 100, 0.15);
+    transform: none;
+    opacity: 1;
+}
+
 .contact-item {
     padding: 12px 16px;
     cursor: pointer;
