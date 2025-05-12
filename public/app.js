@@ -205,45 +205,29 @@ async function fetchContacts() {
         }
         
         // Проверяем поддержку API контактов
-        if (tgApp.isVersionAtLeast && tgApp.isVersionAtLeast('6.9')) {
-            try {
-                // Запрашиваем доступ к контактам
-                const accessResult = await tgApp.requestContactAccess();
-                
-                if (accessResult) {
-                    // Получаем список контактов
-                    const contactsList = await tgApp.getContacts();
-                    
-                    if (contactsList && contactsList.length > 0) {
-                        // Обрабатываем полученные контакты
-                        contactsList.forEach(contact => {
-                            if (contact.username) {
-                                contacts.push({
-                                    first_name: contact.first_name || '',
-                                    last_name: contact.last_name || '',
-                                    username: contact.username,
-                                    photo_url: contact.photo_url || '',
-                                    is_current_user: false
-                                });
-                            }
-                        });
-                        
-                        // Сохраняем контакты в localStorage
-                        saveContactsToCache(contacts);
-                    }
-                } else {
-                    // Если пользователь отказал в доступе к контактам
-                    console.log('Пользователь отказал в доступе к контактам');
-                    contacts.push({
-                        first_name: 'Доступ запрещен',
-                        last_name: '',
-                        username: '',
-                        is_current_user: false,
-                        is_error_message: true
-                    });
-                }
-            } catch (apiError) {
-                console.error('Ошибка при работе с API контактов:', apiError);
+        if (!tgApp.isVersionAtLeast || !tgApp.isVersionAtLeast('6.9')) {
+            // Если версия Telegram не поддерживает API контактов
+            console.log('Версия Telegram не поддерживает API контактов');
+            contacts.push({
+                first_name: 'Ошибка доступа к контактам',
+                last_name: '',
+                username: '',
+                is_current_user: false,
+                is_error_message: true
+            });
+            
+            // Сохраняем контакты в localStorage
+            saveContactsToCache(contacts);
+            return contacts;
+        }
+        
+        try {
+            // Запрашиваем доступ к контактам
+            const accessResult = await tgApp.requestContactAccess();
+            
+            if (!accessResult) {
+                // Если пользователь отказал в доступе к контактам
+                console.log('Пользователь отказал в доступе к контактам');
                 contacts.push({
                     first_name: 'Ошибка доступа к контактам',
                     last_name: '',
@@ -251,12 +235,33 @@ async function fetchContacts() {
                     is_current_user: false,
                     is_error_message: true
                 });
+                
+                // Сохраняем контакты в localStorage
+                saveContactsToCache(contacts);
+                return contacts;
             }
-        } else {
-            // Если версия Telegram не поддерживает API контактов
-            console.log('Версия Telegram не поддерживает API контактов');
+            
+            // Получаем список контактов
+            const contactsList = await tgApp.getContacts();
+            
+            if (contactsList && contactsList.length > 0) {
+                // Обрабатываем полученные контакты
+                contactsList.forEach(contact => {
+                    if (contact.username) {
+                        contacts.push({
+                            first_name: contact.first_name || '',
+                            last_name: contact.last_name || '',
+                            username: contact.username,
+                            photo_url: contact.photo_url || '',
+                            is_current_user: false
+                        });
+                    }
+                });
+            }
+        } catch (apiError) {
+            console.error('Ошибка при работе с API контактов:', apiError);
             contacts.push({
-                first_name: 'Ваша версия Telegram не поддерживает доступ к контактам',
+                first_name: 'Ошибка доступа к контактам',
                 last_name: '',
                 username: '',
                 is_current_user: false,
@@ -265,7 +270,7 @@ async function fetchContacts() {
         }
         
         // Если нет контактов, добавляем сообщение
-        if (contacts.length === 0) {
+        if (contacts.length === 0 || (contacts.length === 1 && contacts[0].is_current_user)) {
             contacts.push({
                 first_name: 'Нет доступных контактов',
                 last_name: '',
@@ -275,6 +280,8 @@ async function fetchContacts() {
             });
         }
         
+        // Сохраняем контакты в localStorage
+        saveContactsToCache(contacts);
         return contacts;
     } catch (error) {
         console.error('Ошибка при получении контактов:', error);
@@ -313,9 +320,13 @@ function renderContacts(contacts) {
     
     // Если контактов нет, показываем сообщение
     if (!contacts || contacts.length === 0) {
-        contactsDropdown.innerHTML = '<div class="contact-item">Нет доступных контактов</div>';
+        contactsDropdown.innerHTML = '<div class="contact-item error-message">Нет доступных контактов</div>';
         return;
     }
+    
+    // Проверяем, есть ли в списке только сообщения об ошибках
+    const hasOnlyErrorMessages = contacts.every(contact => contact.is_error_message);
+    const hasErrorMessages = contacts.some(contact => contact.is_error_message);
     
     // Добавляем контакты в выпадающий список
     contacts.forEach(contact => {
@@ -373,6 +384,11 @@ function renderContacts(contacts) {
         // Добавляем элемент в выпадающий список
         contactsDropdown.appendChild(contactItem);
     });
+    
+    // Если есть только сообщения об ошибках, не добавляем кнопку выбора контакта
+    if (hasOnlyErrorMessages) {
+        return;
+    }
 
     
     // Добавляем кнопку для выбора нового контакта
@@ -456,6 +472,9 @@ function filterContacts() {
     
     if (!contacts || contacts.length === 0) return;
     
+    // Находим сообщения об ошибках
+    const errorMessages = contacts.filter(contact => contact.is_error_message);
+    
     // Фильтруем только обычные контакты (не сообщения об ошибках)
     const filteredContacts = contacts.filter(contact => {
         // Пропускаем сообщения об ошибках при фильтрации
@@ -467,11 +486,14 @@ function filterContacts() {
         return fullName.includes(searchText) || username.includes(searchText);
     });
     
+    // Добавляем сообщения об ошибках к отфильтрованным контактам
+    const resultContacts = [...errorMessages, ...filteredContacts];
+    
     // Отображаем отфильтрованные контакты
-    renderContacts(filteredContacts);
+    renderContacts(resultContacts);
     
     // Если нет результатов, показываем сообщение
-    if (filteredContacts.length === 0 && searchText) {
+    if (filteredContacts.length === 0 && searchText && errorMessages.length === 0) {
         const noResults = document.createElement('div');
         noResults.className = 'contact-item no-results';
         noResults.textContent = 'Нет результатов';
