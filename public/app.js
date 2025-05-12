@@ -245,8 +245,18 @@ async function searchUserByUsername(username) {
         if (!username || username.length < 5 || username.length > 32) {
             return {
                 is_error_message: true,
-                first_name: 'Пользователь не найден',
-                error_code: 'USER_NOT_FOUND'
+                first_name: 'Неверный формат имени пользователя',
+                error_code: 'INVALID_USERNAME'
+            };
+        }
+        
+        // Проверяем, что username содержит только допустимые символы
+        const usernameRegex = /^[a-zA-Z0-9_]{5,32}$/;
+        if (!usernameRegex.test(username)) {
+            return {
+                is_error_message: true,
+                first_name: 'Имя пользователя может содержать только буквы, цифры и подчеркивания',
+                error_code: 'INVALID_USERNAME'
             };
         }
         
@@ -259,11 +269,19 @@ async function searchUserByUsername(username) {
         
         // Если пользователь не найден
         if (!data.success) {
-            return {
-                is_error_message: true,
-                first_name: 'Пользователь не найден',
-                error_code: data.error_code || 'USER_NOT_FOUND'
-            };
+            if (data.error_code === 'INVALID_USERNAME') {
+                return {
+                    is_error_message: true,
+                    first_name: 'Неверный формат имени пользователя',
+                    error_code: 'INVALID_USERNAME'
+                };
+            } else {
+                return {
+                    is_error_message: true,
+                    first_name: 'Пользователь не найден',
+                    error_code: data.error_code || 'USER_NOT_FOUND'
+                };
+            }
         }
         
         // Если пользователь найден, возвращаем его данные
@@ -389,7 +407,7 @@ function renderContacts(contacts) {
     // Добавляем подсказку о вводе username
     const usernameHint = document.createElement('div');
     usernameHint.className = 'username-hint';
-    usernameHint.innerHTML = 'Введите username пользователя для поиска';
+    usernameHint.innerHTML = 'Введите username пользователя для поиска (без символа @)';
     contactsDropdown.appendChild(usernameHint);
 }
 
