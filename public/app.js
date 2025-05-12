@@ -186,27 +186,36 @@ function initContactsDropdown() {
     usernameInput.addEventListener('focus', showContactsDropdown);
     
     // Обработчик ввода для поиска
-    usernameInput.addEventListener('input', filterContacts);
+    usernameInput.addEventListener('input', debounce(filterContacts, 300));
     
     // Обработчик клика вне выпадающего списка
     document.addEventListener('click', handleOutsideClick);
 }
 
+// Функция для задержки выполнения (debounce)
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
 // Функция для получения данных текущего пользователя из Telegram API
-async function fetchContacts() {
+async function fetchCurrentUser() {
     try {
         // Получаем данные текущего пользователя
         const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
         
         if (!currentUser) {
-            return [{
+            return {
                 first_name: 'Не удалось получить данные пользователя',
                 is_error_message: true
-            }];
+            };
         }
         
         // Возвращаем информацию о текущем пользователе
-        return [{
+        return {
             id: currentUser.id,
             first_name: currentUser.first_name,
             last_name: currentUser.last_name,
@@ -214,13 +223,70 @@ async function fetchContacts() {
             photo_url: currentUser.photo_url,
             is_current_user: true,
             is_error_message: false
-        }];
+        };
     } catch (error) {
         console.error('Ошибка при получении данных пользователя:', error);
-        return [{
+        return {
             first_name: 'Ошибка при получении данных пользователя',
             is_error_message: true
-        }];
+        };
+    }
+}
+
+// Функция для поиска пользователя по username
+async function searchUserByUsername(username) {
+    try {
+        // В реальном приложении здесь должен быть запрос к API бота
+        // для поиска пользователя по username
+        
+        // Имитация задержки сетевого запроса
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Проверяем, что username не пустой и соответствует формату Telegram
+        if (!username || username.length < 5 || username.length > 32) {
+            return {
+                is_error_message: true,
+                first_name: 'Пользователь не найден',
+                error_code: 'USER_NOT_FOUND'
+            };
+        }
+        
+        // Имитация ответа от сервера
+        // В реальном приложении здесь должен быть ответ от API
+        
+        // Имитируем случай с приватным аккаунтом (30% случаев)
+        const isPrivate = Math.random() < 0.3;
+        
+        if (isPrivate) {
+            return {
+                username: username,
+                first_name: 'Пользователь',
+                is_private: true,
+                photo_url: null
+            };
+        }
+        
+        // Генерируем случайное имя и фамилию
+        const names = ['Александр', 'Мария', 'Иван', 'Елена', 'Дмитрий', 'Анна', 'Сергей', 'Ольга'];
+        const lastNames = ['Иванов', 'Смирнова', 'Кузнецов', 'Попова', 'Соколов', 'Новикова', 'Морозов', 'Петрова'];
+        
+        const randomName = names[Math.floor(Math.random() * names.length)];
+        const randomLastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+        
+        return {
+            username: username,
+            first_name: randomName,
+            last_name: randomLastName,
+            photo_url: null, // В реальном приложении здесь будет URL аватарки
+            is_private: false
+        };
+    } catch (error) {
+        console.error('Ошибка при поиске пользователя:', error);
+        return {
+            is_error_message: true,
+            first_name: 'Ошибка при поиске пользователя',
+            error_code: 'SEARCH_ERROR'
+        };
     }
 }
 
@@ -230,16 +296,14 @@ async function showContactsDropdown() {
     contactsDropdown.innerHTML = '<div class="loading-contacts">Загрузка данных</div>';
     contactsDropdown.classList.add('active');
     
-    // Пробуем получить контакты из кэша
-    let contacts = getContactsFromCache();
+    // Получаем данные текущего пользователя
+    const currentUser = await fetchCurrentUser();
     
-    // Если кэш пуст или устарел, запрашиваем контакты заново
-    if (!contacts || contacts.length <= 1) {
-        contacts = await fetchContacts();
-    }
+    // Сохраняем текущего пользователя в кэш
+    saveContactToCache(currentUser);
     
-    // Отображаем контакты
-    renderContacts(contacts);
+    // Отображаем текущего пользователя
+    renderContacts([currentUser]);
 }
 
 // Отрисовка контактов в выпадающем списке
@@ -253,42 +317,6 @@ function renderContacts(contacts) {
         return;
     }
     
-    // Получаем текущее значение поля ввода
-    const inputValue = usernameInput.value.trim().toLowerCase();
-    const isSearching = inputValue && !inputValue.startsWith('@') && inputValue !== contacts[0].username;
-    
-    // Если пользователь ввел текст для поиска, проверяем его как username
-    if (isSearching) {
-        // Создаем элемент для отображения результата поиска
-        const searchItem = document.createElement('div');
-        searchItem.className = 'contact-item';
-        
-        // Создаем HTML для результата поиска
-        let searchHTML = '<div class="contact-avatar"><div class="default-avatar"></div></div>';
-        searchHTML += '<div class="contact-info">';
-        searchHTML += `<div class="contact-name">Пользователь с username @${inputValue}</div>`;
-        searchHTML += `<div class="contact-username">@${inputValue}</div>`;
-        searchHTML += '</div>';
-        
-        searchItem.innerHTML = searchHTML;
-        
-        // Добавляем обработчик клика для выбора результата поиска
-        searchItem.addEventListener('click', () => {
-            // Устанавливаем значение в поле ввода
-            usernameInput.value = inputValue;
-            // Скрываем выпадающий список
-            contactsDropdown.classList.remove('active');
-            // Убираем фокус с поля ввода
-            usernameInput.blur();
-        });
-        
-        contactsDropdown.appendChild(searchItem);
-    }
-    
-    // Проверяем, есть ли в списке только сообщения об ошибках
-    const hasOnlyErrorMessages = contacts.every(contact => contact.is_error_message);
-    const hasErrorMessages = contacts.some(contact => contact.is_error_message);
-    
     // Добавляем контакты в выпадающий список
     contacts.forEach(contact => {
         const contactItem = document.createElement('div');
@@ -301,11 +329,15 @@ function renderContacts(contacts) {
         if (contact.is_error_message) {
             contactItem.classList.add('error-message');
         }
+        if (contact.is_private) {
+            contactItem.classList.add('private-account');
+        }
         
         // Формируем имя контакта
         let contactName = contact.first_name;
         if (contact.last_name) contactName += ' ' + contact.last_name;
         if (contact.is_current_user) contactName += ' (Вы)';
+        if (contact.is_private) contactName += ' (Приватный аккаунт)';
         
         // Добавляем имя пользователя, если оно есть
         const usernameText = contact.username ? `@${contact.username}` : '';
@@ -346,12 +378,6 @@ function renderContacts(contacts) {
         contactsDropdown.appendChild(contactItem);
     });
     
-    // Если есть только сообщения об ошибках, не добавляем кнопку выбора контакта
-    if (hasOnlyErrorMessages) {
-        return;
-    }
-
-    
     // Добавляем подсказку о вводе username
     const usernameHint = document.createElement('div');
     usernameHint.className = 'username-hint';
@@ -360,38 +386,36 @@ function renderContacts(contacts) {
 }
 
 // Фильтрация контактов при вводе
-function filterContacts() {
-    const searchText = usernameInput.value.toLowerCase();
-    const contacts = getContactsFromCache();
+async function filterContacts() {
+    const searchText = usernameInput.value.trim().toLowerCase();
     
-    if (!contacts || contacts.length === 0) return;
+    // Если поле ввода пустое, показываем только текущего пользователя
+    if (!searchText) {
+        const currentUser = await fetchCurrentUser();
+        renderContacts([currentUser]);
+        return;
+    }
     
-    // Находим сообщения об ошибках
-    const errorMessages = contacts.filter(contact => contact.is_error_message);
+    // Показываем индикатор загрузки
+    contactsDropdown.innerHTML = '<div class="loading-contacts">Поиск пользователя...</div>';
     
-    // Фильтруем только обычные контакты (не сообщения об ошибках)
-    const filteredContacts = contacts.filter(contact => {
-        // Пропускаем сообщения об ошибках при фильтрации
-        if (contact.is_error_message) return false;
+    // Проверяем, есть ли пользователь в кэше
+    const cachedUser = getUserFromCache(searchText);
+    
+    if (cachedUser) {
+        // Если пользователь найден в кэше, отображаем его
+        renderContacts([cachedUser]);
+    } else {
+        // Если пользователя нет в кэше, ищем его через API
+        const user = await searchUserByUsername(searchText);
         
-        const fullName = `${contact.first_name} ${contact.last_name}`.toLowerCase();
-        const username = (contact.username || '').toLowerCase();
+        // Если пользователь найден, сохраняем его в кэш
+        if (!user.is_error_message) {
+            saveContactToCache(user);
+        }
         
-        return fullName.includes(searchText) || username.includes(searchText);
-    });
-    
-    // Добавляем сообщения об ошибках к отфильтрованным контактам
-    const resultContacts = [...errorMessages, ...filteredContacts];
-    
-    // Отображаем отфильтрованные контакты
-    renderContacts(resultContacts);
-    
-    // Если нет результатов, показываем сообщение
-    if (filteredContacts.length === 0 && searchText && errorMessages.length === 0) {
-        const noResults = document.createElement('div');
-        noResults.className = 'contact-item no-results';
-        noResults.textContent = 'Нет результатов';
-        contactsDropdown.appendChild(noResults);
+        // Отображаем результат поиска
+        renderContacts([user]);
     }
 }
 
@@ -407,58 +431,57 @@ function hideContactsDropdown() {
     contactsDropdown.classList.remove('active');
 }
 
-// Сохранение контакта
-function saveContact(contact) {
+// Сохранение контакта в кэш
+function saveContactToCache(contact) {
     if (!contact || !contact.username) return;
     
     try {
         // Получаем текущие контакты из кэша
-        let contacts = getContactsFromCache() || [];
+        let contacts = {};
+        const contactsCache = localStorage.getItem('contactsCache');
         
-        // Проверяем, есть ли уже такой контакт в списке
-        const contactExists = contacts.some(c => 
-            c.username === contact.username && !c.is_current_user);
-        
-        // Если контакта нет, добавляем его
-        if (!contactExists) {
-            contacts.push(contact);
-            // Сохраняем обновленный список контактов
-            saveContactsToCache(contacts);
+        if (contactsCache) {
+            contacts = JSON.parse(contactsCache);
         }
-    } catch (error) {
-        console.error('Ошибка при сохранении контакта:', error);
-    }
-}
-
-// Работа с кэшем контактов
-function saveContactsToCache(contacts) {
-    try {
+        
+        // Добавляем или обновляем контакт в кэше
+        contacts[contact.username.toLowerCase()] = {
+            ...contact,
+            timestamp: Date.now()
+        };
+        
+        // Сохраняем обновленный кэш
         localStorage.setItem('contactsCache', JSON.stringify(contacts));
-        localStorage.setItem('contactsCacheTimestamp', Date.now());
     } catch (error) {
-        console.error('Ошибка при сохранении контактов в кэш:', error);
+        console.error('Ошибка при сохранении контакта в кэш:', error);
     }
 }
 
-function getContactsFromCache() {
+// Получение пользователя из кэша по username
+function getUserFromCache(username) {
+    if (!username) return null;
+    
     try {
-        const cacheTimestamp = localStorage.getItem('contactsCacheTimestamp');
+        const contactsCache = localStorage.getItem('contactsCache');
+        
+        if (!contactsCache) return null;
+        
+        const contacts = JSON.parse(contactsCache);
+        const cachedContact = contacts[username.toLowerCase()];
+        
+        if (!cachedContact) return null;
+        
         const currentTime = Date.now();
-        const cacheAge = currentTime - cacheTimestamp;
+        const cacheAge = currentTime - cachedContact.timestamp;
         
         // Если кэш старше 1 часа, считаем его устаревшим
-        if (!cacheTimestamp || cacheAge > 3600000) {
+        if (cacheAge > 3600000) {
             return null;
         }
         
-        const contactsCache = localStorage.getItem('contactsCache');
-        if (contactsCache) {
-            return JSON.parse(contactsCache);
-        }
-        
-        return null;
+        return cachedContact;
     } catch (error) {
-        console.error('Ошибка при получении контактов из кэша:', error);
+        console.error('Ошибка при получении пользователя из кэша:', error);
         return null;
     }
 }
