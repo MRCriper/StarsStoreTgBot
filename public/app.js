@@ -2,12 +2,15 @@
 const tgApp = window.Telegram.WebApp;
 
 // Адаптация к теме Telegram
-document.documentElement.style.setProperty('--tg-theme-bg-color', tgApp.backgroundColor);
-document.documentElement.style.setProperty('--tg-theme-text-color', tgApp.textColor);
-document.documentElement.style.setProperty('--tg-theme-hint-color', tgApp.textColor);
-document.documentElement.style.setProperty('--tg-theme-link-color', tgApp.linkColor);
-document.documentElement.style.setProperty('--tg-theme-button-color', tgApp.buttonColor);
-document.documentElement.style.setProperty('--tg-theme-button-text-color', tgApp.buttonTextColor);
+document.documentElement.style.setProperty('--tg-theme-bg-color', tgApp.backgroundColor || '#0a0a1a');
+document.documentElement.style.setProperty('--tg-theme-text-color', tgApp.textColor || '#ffffff');
+document.documentElement.style.setProperty('--tg-theme-hint-color', tgApp.hintColor || '#a0a0c0');
+document.documentElement.style.setProperty('--tg-theme-link-color', tgApp.linkColor || '#9d71ea');
+document.documentElement.style.setProperty('--tg-theme-button-color', tgApp.buttonColor || '#9d71ea');
+document.documentElement.style.setProperty('--tg-theme-button-text-color', tgApp.buttonTextColor || '#ffffff');
+
+// Убедимся, что все текстовые элементы используют правильные цвета
+document.body.style.color = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-text-color');
 
 // Определение платформы
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 

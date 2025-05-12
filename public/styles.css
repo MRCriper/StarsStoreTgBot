@@ -359,6 +359,18 @@ main {
     padding: 20px 0;
 }
 
+/* Убедимся, что все текстовые элементы используют цвета темы Telegram */
+.contact-name, .section-title, .custom-package h3, .order-summary h3, 
+.referral-title, .referral-info h3, .referral-discounts h3, .referral-list h3,
+.discount-reason, .referral-username, label, .price-container, .loader p {
+    color: var(--tg-theme-text-color, #ffffff);
+}
+
+.contact-username, .input-hint, .username-hint, .discount-date, .referral-stars,
+.price-container small, footer, .contact-phone, .no-results, .loading-contacts {
+    color: var(--tg-theme-hint-color, #a0a0c0);
+}
+
 .discount-item, .referral-item {
     background-color: rgba(157, 113, 234, 0.1);
     border-radius: var(--border-radius-sm);
