@@ -180,6 +180,11 @@ function initContactsDropdown() {
     const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
     if (currentUser && currentUser.username) {
         usernameInput.value = currentUser.username;
+        
+        // Автоматически показываем выпадающий список с текущим пользователем при загрузке
+        setTimeout(() => {
+            showContactsDropdown();
+        }, 500);
     }
     
     // Добавляем обработчик фокуса для поля ввода имени пользователя
@@ -236,12 +241,6 @@ async function fetchCurrentUser() {
 // Функция для поиска пользователя по username
 async function searchUserByUsername(username) {
     try {
-        // В реальном приложении здесь должен быть запрос к API бота
-        // для поиска пользователя по username
-        
-        // Имитация задержки сетевого запроса
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
         // Проверяем, что username не пустой и соответствует формату Telegram
         if (!username || username.length < 5 || username.length > 32) {
             return {
@@ -251,34 +250,27 @@ async function searchUserByUsername(username) {
             };
         }
         
-        // Имитация ответа от сервера
-        // В реальном приложении здесь должен быть ответ от API
+        // Отправляем запрос к API для поиска пользователя
+        const response = await fetch(`/api/search-user?username=${encodeURIComponent(username)}`);
+        const data = await response.json();
         
-        // Имитируем случай с приватным аккаунтом (30% случаев)
-        const isPrivate = Math.random() < 0.3;
-        
-        if (isPrivate) {
+        // Если пользователь не найден
+        if (!data.success) {
             return {
-                username: username,
-                first_name: 'Пользователь',
-                is_private: true,
-                photo_url: null
+                is_error_message: true,
+                first_name: 'Пользователь не найден',
+                error_code: data.error_code || 'USER_NOT_FOUND'
             };
         }
         
-        // Генерируем случайное имя и фамилию
-        const names = ['Александр', 'Мария', 'Иван', 'Елена', 'Дмитрий', 'Анна', 'Сергей', 'Ольга'];
-        const lastNames = ['Иванов', 'Смирнова', 'Кузнецов', 'Попова', 'Соколов', 'Новикова', 'Морозов', 'Петрова'];
-        
-        const randomName = names[Math.floor(Math.random() * names.length)];
-        const randomLastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-        
+        // Если пользователь найден, возвращаем его данные
         return {
-            username: username,
-            first_name: randomName,
-            last_name: randomLastName,
-            photo_url: null, // В реальном приложении здесь будет URL аватарки
-            is_private: false
+            id: data.user.id,
+            username: data.user.username,
+            first_name: data.user.first_name,
+            last_name: data.user.last_name,
+            photo_url: data.user.photo_url,
+            is_private: data.user.is_private || false
         };
     } catch (error) {
         console.error('Ошибка при поиске пользователя:', error);
@@ -334,7 +326,7 @@ function renderContacts(contacts) {
         }
         
         // Формируем имя контакта
-        let contactName = contact.first_name;
+        let contactName = contact.first_name || 'Пользователь';
         if (contact.last_name) contactName += ' ' + contact.last_name;
         if (contact.is_current_user) contactName += ' (Вы)';
         if (contact.is_private) contactName += ' (Приватный аккаунт)';
@@ -396,6 +388,13 @@ async function filterContacts() {
         return;
     }
     
+    // Проверяем, является ли текущий пользователь
+    const currentUser = await fetchCurrentUser();
+    if (currentUser.username && currentUser.username.toLowerCase() === searchText) {
+        renderContacts([currentUser]);
+        return;
+    }
+    
     // Показываем индикатор загрузки
     contactsDropdown.innerHTML = '<div class="loading-contacts">Поиск пользователя...</div>';
     
@@ -406,16 +405,24 @@ async function filterContacts() {
         // Если пользователь найден в кэше, отображаем его
         renderContacts([cachedUser]);
     } else {
-        // Если пользователя нет в кэше, ищем его через API
-        const user = await searchUserByUsername(searchText);
-        
-        // Если пользователь найден, сохраняем его в кэш
-        if (!user.is_error_message) {
-            saveContactToCache(user);
+        try {
+            // Если пользователя нет в кэше, ищем его через API
+            const user = await searchUserByUsername(searchText);
+            
+            // Если пользователь найден, сохраняем его в кэш
+            if (!user.is_error_message) {
+                saveContactToCache(user);
+            }
+            
+            // Отображаем результат поиска
+            renderContacts([user]);
+        } catch (error) {
+            console.error('Ошибка при поиске пользователя:', error);
+            renderContacts([{
+                is_error_message: true,
+                first_name: 'Ошибка при поиске пользователя'
+            }]);
         }
-        
-        // Отображаем результат поиска
-        renderContacts([user]);
     }
 }
 
