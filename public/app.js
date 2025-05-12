@@ -250,6 +250,9 @@ async function searchUserByUsername(username) {
             };
         }
         
+        // Показываем индикатор загрузки в выпадающем списке
+        contactsDropdown.innerHTML = '<div class="loading-contacts">Поиск пользователя...</div>';
+        
         // Отправляем запрос к API для поиска пользователя
         const response = await fetch(`/api/search-user?username=${encodeURIComponent(username)}`);
         const data = await response.json();
@@ -267,10 +270,10 @@ async function searchUserByUsername(username) {
         return {
             id: data.user.id,
             username: data.user.username,
-            first_name: data.user.first_name,
+            first_name: data.user.first_name || 'Пользователь',
             last_name: data.user.last_name,
             photo_url: data.user.photo_url,
-            is_private: data.user.is_private || false
+            is_private: Boolean(data.user.is_private) // Явно приводим к булевому значению
         };
     } catch (error) {
         console.error('Ошибка при поиске пользователя:', error);
@@ -329,7 +332,12 @@ function renderContacts(contacts) {
         let contactName = contact.first_name || 'Пользователь';
         if (contact.last_name) contactName += ' ' + contact.last_name;
         if (contact.is_current_user) contactName += ' (Вы)';
-        if (contact.is_private) contactName += ' (Приватный аккаунт)';
+        
+        // Отдельная метка для приватного аккаунта
+        let privateLabel = '';
+        if (contact.is_private) {
+            privateLabel = '<span class="private-label">Приватный аккаунт</span>';
+        }
         
         // Добавляем имя пользователя, если оно есть
         const usernameText = contact.username ? `@${contact.username}` : '';
@@ -349,12 +357,12 @@ function renderContacts(contacts) {
                     ${contact.photo_url ? `<img src="${contact.photo_url}" alt="${contactName}">` : '<div class="default-avatar"></div>'}
                 </div>
                 <div class="contact-info">
-                    <div class="contact-name">${contactName}</div>
+                    <div class="contact-name">${contactName} ${privateLabel}</div>
                     <div class="contact-username">${usernameText}</div>
                 </div>
             `;
             
-            // Добавляем обработчик клика только для обычных контактов
+            // Добавляем обработчик клика для всех контактов (включая приватные)
             contactItem.addEventListener('click', () => {
                 // Устанавливаем имя пользователя в поле ввода
                 if (contact.username) {
