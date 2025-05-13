@@ -64,7 +64,7 @@ function calculateDiscounts(totalStars) {
 
 // Функция для генерации реферальной ссылки
 function generateReferralLink(userId) {
-  return `https://t.me/stars_store_bot?start=ref_${userId}`;
+  return `https://t.me/pasha321bot?start=ref_${userId}`;
 }
 
 // Создаем экземпляр Express
@@ -408,7 +408,7 @@ app.get('/api/search-user', async (req, res) => {
 // Запускаем сервер
 app.listen(PORT, () => {
   console.log(`Сервер запущен на порту ${PORT}`);
-  console.log(`Мини-приложение доступно по адресу: https://42150a8d-14a6-4d03-8420-8a80d6225b8b-00-2wgifpmi2x174.sisko.replit.dev/`);
+  console.log(`Мини-приложение доступно по адресу: https://4008db5c-30f4-4c1f-9e72-9277a9789452-00-3dj86x3mdpb5x.sisko.replit.dev/`);
 });
 
 console.log('Бот запущен!');
