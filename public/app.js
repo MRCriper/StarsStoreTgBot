@@ -57,7 +57,16 @@ const contactsDropdown = document.getElementById('contacts-dropdown');
 const referralPage = document.getElementById('referral-page');
 const referralNav = document.getElementById('referral-nav');
 const exchangeNav = document.getElementById('exchange-nav');
-const mainNav = document.getElementById('main-nav');
+const mainNav = document.createElement('div'); // Создаем элемент, если его нет в DOM
+mainNav.className = 'swipe-navigation right-nav';
+mainNav.id = 'main-nav';
+mainNav.innerHTML = `
+    <div class="nav-arrow">
+        <i class="fas fa-chevron-right"></i>
+    </div>
+    <div class="nav-label">Главная</div>
+`;
+document.body.appendChild(mainNav); // Добавляем в DOM
 const referralLink = document.getElementById('referral-link');
 const shareButton = document.getElementById('share-button');
 const discountsContainer = document.getElementById('discounts-container');
@@ -319,6 +328,11 @@ function generateTemporaryReferralData() {
         timestamp: Date.now()
     }));
     
+    // Обновляем реферальную ссылку в интерфейсе
+    if (referralLink) {
+        referralLink.value = referralData.referralLink;
+    }
+    
     // Показываем уведомление пользователю
     setTimeout(() => {
         tgApp.showPopup({
@@ -395,7 +409,6 @@ shareButton.addEventListener('click', () => {
     if (!referralLink.value) {
         // Если ссылки нет, генерируем временную
         generateTemporaryReferralData();
-        referralLink.value = referralData.referralLink;
     }
     
     // Копируем реферальную ссылку в буфер обмена
@@ -457,13 +470,20 @@ function formatPrice(price) {
 function updateCustomPrice() {
     const stars = parseInt(starsInput.value) || 50;
     const totalPrice = stars * PRICE_PER_STAR;
-    priceElement.textContent = formatPrice(totalPrice).replace(' ₽', '');
     
-    // Анимация изменения цены
-    priceElement.classList.add('price-updated');
-    setTimeout(() => {
-        priceElement.classList.remove('price-updated');
-    }, 300);
+    // Форматируем цену и обновляем элемент
+    const formattedPrice = formatPrice(totalPrice).replace(' ₽', '');
+    if (priceElement) {
+        priceElement.textContent = formattedPrice;
+        
+        // Анимация изменения цены
+        priceElement.classList.add('price-updated');
+        setTimeout(() => {
+            priceElement.classList.remove('price-updated');
+        }, 300);
+    }
+    
+    return totalPrice; // Возвращаем вычисленную цену для использования в других функциях
 }
 
 
@@ -496,18 +516,18 @@ starsInput.addEventListener('keypress', (e) => {
 toStep2Btn.addEventListener('click', () => {
     // Получаем данные о пользовательском пакете
     selectedStars = parseInt(starsInput.value) || 50;
-    selectedPrice = selectedStars * PRICE_PER_STAR;
+    selectedPrice = updateCustomPrice(); // Используем функцию для расчета цены
     
     // Обновляем данные заказа
-    summaryStars.textContent = selectedStars + ' ⭐';
-    summaryPrice.textContent = formatPrice(selectedPrice);
+    if (summaryStars) summaryStars.textContent = selectedStars + ' ⭐';
+    if (summaryPrice) summaryPrice.textContent = formatPrice(selectedPrice);
     
     // Используем единую функцию для переключения страниц
     switchToPage('step-2');
     
     // Фокус на поле ввода имени пользователя
     setTimeout(() => {
-        usernameInput.focus();
+        if (usernameInput) usernameInput.focus();
     }, 600);
     
     // Логируем для отладки
