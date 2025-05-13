@@ -223,9 +223,13 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
     
     if (referrerUsername) {
       try {
-        // Получаем информацию о пользователе по username
-        const referrerChat = await bot.getChat(`@${referrerUsername}`).catch(err => {
-          console.error(`Ошибка при получении информации о пользователе @${referrerUsername}:`, err);
+        // Проверяем, является ли referrerUsername числовым ID или текстовым username
+        const isNumericId = /^\d+$/.test(referrerUsername);
+        
+        // Получаем информацию о пользователе по ID или username
+        const chatQuery = isNumericId ? referrerUsername : `@${referrerUsername}`;
+        const referrerChat = await bot.getChat(chatQuery).catch(err => {
+          console.error(`Ошибка при получении информации о пользователе ${chatQuery}:`, err);
           return null;
         });
         
