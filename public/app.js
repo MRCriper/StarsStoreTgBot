@@ -89,10 +89,10 @@ function switchToPage(pageName) {
         mainNav.style.display = 'none'; // Скрываем правую стрелку на главной странице
         
         // Восстанавливаем состояние кнопки биржи при любом переходе между страницами
-const exchangeButton = document.querySelector('.exchange-button');
-if (exchangeButton && interfaceState.exchangeButtonVisible) {
-    exchangeButton.style.display = 'flex';
-}
+        const exchangeButton = document.querySelector('.exchange-button');
+        if (exchangeButton && interfaceState.exchangeButtonVisible) {
+            exchangeButton.style.display = 'flex';
+        }
     } else if (pageName === 'step-2') {
         step2.classList.add('active');
         currentPage = 'step-2';
@@ -120,15 +120,15 @@ if (exchangeButton && interfaceState.exchangeButtonVisible) {
     }
     
     // Добавляем анимацию перехода между страницами
-if (prevPage && prevPage !== pageName) {
-    // Скрываем все страницы перед анимацией
-    document.querySelectorAll('.page').forEach(page => {
-        if (!page.classList.contains('active')) {
-            page.style.display = 'none';
-        }
-    });
-    addPageTransitionAnimation(prevPage, pageName);
-}
+    if (prevPage && prevPage !== pageName) {
+        // Скрываем все страницы перед анимацией
+        document.querySelectorAll('.page').forEach(page => {
+            if (!page.classList.contains('active')) {
+                page.style.display = 'none';
+            }
+        });
+        addPageTransitionAnimation(prevPage, pageName);
+    }
 }
 
 // Функция для добавления анимации перехода между страницами
@@ -298,12 +298,11 @@ function generateTemporaryReferralData() {
     // Генерируем уникальный код для реферальной ссылки
     const uniqueCode = Math.random().toString(36).substring(2, 10);
     
-    // Получаем имя бота из конфигурации или используем значение по умолчанию
-    const botName = window.Telegram.WebApp.initDataUnsafe.start_param?.split('_')[0] || 'TGStarsBot';
-    
+    // Используем правильный username бота
+    const botUsername = 'pasha321bot'; // Используем корректный username бота
     // Создаем временные данные
     referralData = {
-        referralLink: `https://t.me/${botName}?start=ref_${username}_${uniqueCode}`,
+        referralLink: `https://t.me/${botUsername}?start=ref_${username}_${uniqueCode}`,
         referrals: [],
         discounts: []
     };
@@ -527,19 +526,27 @@ toStep2Btn.addEventListener('click', () => {
     summaryStars.textContent = selectedStars + ' ⭐';
     summaryPrice.textContent = formatPrice(selectedPrice);
     
-// Используем единую функцию для переключения страниц
-switchToPage('step-2');
-
-// Фокус на поле ввода имени пользователя
-setTimeout(() => {
-    usernameInput.focus();
-}, 600);
+    // Используем единую функцию для переключения страниц
+    switchToPage('step-2');
+    
+    // Фокус на поле ввода имени пользователя
+    setTimeout(() => {
+        usernameInput.focus();
+    }, 600);
 });
 
 // Обработчик для кнопки "Назад" к шагу 1
 backToStep1Btn.addEventListener('click', () => {
-// Используем единую функцию для переключения страниц
-switchToPage('step-1');
+// Переключаем шаги с анимацией свайпа
+step2.classList.remove('active');
+step2.classList.add('animate__animated', 'animate__fadeOutRight');
+    
+    setTimeout(() => {
+        step2.style.display = 'none';
+        step1.style.display = 'block';
+        step1.classList.remove('animate__fadeOutLeft');
+        step1.classList.add('active', 'animate__animated', 'animate__fadeInLeft');
+    }, 300);
 });
 
 // ===== НОВАЯ РЕАЛИЗАЦИЯ ВЫПАДАЮЩЕГО СПИСКА КОНТАКТОВ =====

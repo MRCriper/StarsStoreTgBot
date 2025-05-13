@@ -118,23 +118,6 @@ body::after {
     z-index: 1;
 }
 
-/* Стили для страниц и их переходов */
-.page {
-    position: absolute;
-    width: 100%;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    opacity: 0;
-    transform: translateX(100%);
-    display: none;
-}
-
-.page.active {
-    opacity: 1;
-    transform: translateX(0);
-    display: block;
-    z-index: 1;
-}
-
 /* ===== HEADER ===== */
 header {
     text-align: center;
