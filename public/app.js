@@ -53,9 +53,10 @@ const packages = document.querySelectorAll('.package');
 const loader = document.getElementById('loader');
 const contactsDropdown = document.getElementById('contacts-dropdown');
 
-// Элементы реферальной системы
+// Элементы реферальной системы и биржи
 const referralPage = document.getElementById('referral-page');
 const referralNav = document.getElementById('referral-nav');
+const exchangeNav = document.getElementById('exchange-nav');
 const mainNav = document.getElementById('main-nav');
 const referralLink = document.getElementById('referral-link');
 const shareButton = document.getElementById('share-button');
@@ -86,11 +87,8 @@ function switchToPage(pageName) {
         referralNav.style.display = 'flex';
         mainNav.style.display = 'none'; // Скрываем правую стрелку на главной странице
         
-        // Восстанавливаем состояние кнопки биржи при любом переходе между страницами
-        const exchangeButton = document.querySelector('.exchange-button');
-        if (exchangeButton && interfaceState.exchangeButtonVisible) {
-            exchangeButton.style.display = 'flex';
-        }
+        // На главной странице показываем кнопку биржи справа
+        exchangeNav.style.display = 'flex';
     } else if (pageName === 'step-2') {
         step2.classList.add('active');
         currentPage = 'step-2';
@@ -98,6 +96,9 @@ function switchToPage(pageName) {
         // Показываем левую навигационную стрелку (к реферальной системе)
         referralNav.style.display = 'flex';
         mainNav.style.display = 'none'; // Скрываем правую стрелку на странице шага 2
+        
+        // На странице шага 2 показываем кнопку биржи справа
+        exchangeNav.style.display = 'flex';
     } else if (pageName === 'referral') {
         referralPage.classList.add('active');
         currentPage = 'referral';
@@ -107,11 +108,8 @@ function switchToPage(pageName) {
         mainNav.style.display = 'flex';
         mainNav.querySelector('.nav-label').textContent = 'Главная';
         
-        // Сохраняем состояние кнопки биржи перед переходом на реферальную страницу
-        const exchangeButton = document.querySelector('.exchange-button');
-        if (exchangeButton) {
-            interfaceState.exchangeButtonVisible = exchangeButton.style.display !== 'none';
-        }
+        // На странице рефералов скрываем кнопку биржи
+        exchangeNav.style.display = 'none';
         
         // Загружаем данные реферальной системы
         loadReferralData();
@@ -190,6 +188,10 @@ referralNav.addEventListener('click', () => {
     if (currentPage === 'step-1' || currentPage === 'step-2') {
         switchToPage('referral');
     }
+});
+
+exchangeNav.addEventListener('click', () => {
+    window.location.href = 'exchange.html';
 });
 
 mainNav.addEventListener('click', () => {

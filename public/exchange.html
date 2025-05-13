@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Биржа подарков</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body class="exchange-page">
+    <div class="container">
+        <div class="mode-selector">
+            <button id="fragment-mode" class="mode-btn active">Fragment Market</button>
+            <button id="starsstore-mode" class="mode-btn">StarsStore Market</button>
+        </div>
+
+        <!-- Секция Fragment Market -->
+        <section id="fragment-section" class="market-section active">
+            <div class="market-header">
+                <h2>Fragment Market</h2>
+                <p>Сторонняя биржа подарков Telegram</p>
+            </div>
+            <div class="market-content">
+                <div class="gift-list" id="fragment-gift-list">
+                    <!-- Здесь будут отображаться подарки из Fragment Market -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Секция StarsStore Market -->
+        <section id="starsstore-section" class="market-section">
+            <div class="market-header">
+                <h2>StarsStore Market</h2>
+                <p>Внутренняя биржа подарков Telegram</p>
+            </div>
+            <div class="market-content">
+                <div class="gift-list" id="starsstore-gift-list">
+                    <!-- Здесь будут отображаться подарки из StarsStore Market -->
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Лоадер -->
+    <div id="loader" class="loader" style="display: none;">
+        <div class="loader-spinner"></div>
+    </div>
+
+    <script src="exchange.js"></script>
+</body>
+</html>

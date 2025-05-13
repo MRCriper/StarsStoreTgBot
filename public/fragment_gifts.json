@@ -1,0 +1,31 @@
+{
+  "gifts": [
+    {
+      "id": "f1",
+      "name": "Премиум стикеры 'Космос'",
+      "description": "Эксклюзивный набор анимированных стикеров на космическую тематику",
+      "icon": "fas fa-rocket",
+      "price": 150,
+      "seller": "SpaceArtist",
+      "seller_id": "space_artist_tg"
+    },
+    {
+      "id": "f2",
+      "name": "Анимированная реакция 'Wow'",
+      "description": "Яркая анимированная реакция для чатов и каналов",
+      "icon": "fas fa-star-half-alt",
+      "price": 80,
+      "seller": "ReactionMaster",
+      "seller_id": "reaction_master"
+    },
+    {
+      "id": "f3",
+      "name": "Набор эмодзи 'Пиксель'",
+      "description": "Коллекция пиксельных эмодзи в ретро-стиле",
+      "icon": "fas fa-gamepad",
+      "price": 120,
+      "seller": "PixelArtPro",
+      "seller_id": "pixel_art_pro"
+    }
+  ]
+}
