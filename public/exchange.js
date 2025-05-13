@@ -88,7 +88,8 @@ async function loadGifts(mode) {
         } else {
             // Для StarsStore Market используем JSON файл
             const response = await fetch(`${mode}_gifts.json`);
-            gifts = await response.json();
+            const data = await response.json();
+            gifts = data.gifts;
         }
         
         renderGifts(gifts, mode);
