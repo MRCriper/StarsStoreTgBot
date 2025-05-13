@@ -86,19 +86,32 @@ app.get('/api/referral-data', (req, res) => {
     // Получаем идентификатор пользователя из заголовка Telegram WebApp
     const initData = req.headers['x-telegram-web-app-init-data'];
     
-    if (!initData) {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized'
-      });
+    console.log('Получен запрос на /api/referral-data с заголовками:', req.headers);
+    
+    let userId;
+    
+    if (initData) {
+      try {
+        // Парсим данные инициализации
+        const initDataParams = new URLSearchParams(initData);
+        const user = JSON.parse(initDataParams.get('user') || '{}');
+        userId = user.id;
+        
+        console.log('Получены данные пользователя из initData:', user);
+      } catch (parseError) {
+        console.error('Ошибка при парсинге initData:', parseError);
+      }
     }
     
-    // Парсим данные инициализации
-    const initDataParams = new URLSearchParams(initData);
-    const user = JSON.parse(initDataParams.get('user') || '{}');
-    const userId = user.id;
+    // Если не удалось получить userId из заголовка, пробуем получить из query параметров
+    // Это запасной вариант для отладки и тестирования
+    if (!userId && req.query.userId) {
+      userId = req.query.userId;
+      console.log('Используем userId из query параметров:', userId);
+    }
     
     if (!userId) {
+      console.error('Не удалось определить userId');
       return res.status(401).json({
         success: false,
         error: 'User ID not found'

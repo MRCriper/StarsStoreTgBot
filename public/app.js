@@ -206,46 +206,19 @@ async function loadReferralData() {
         // Показываем индикатор загрузки
         loader.classList.add('active');
         
-        // Сначала проверяем, есть ли данные в localStorage
-        const savedReferralData = localStorage.getItem('referralData');
-        
-        if (savedReferralData) {
-            try {
-                localStorage.clear();
-                // Пытаемся распарсить сохраненные данные
-                const parsedData = JSON.parse(savedReferralData);
-                
-                // Проверяем, что данные не устарели (не старше 24 часов)
-                const now = Date.now();
-                const savedTime = parsedData.timestamp || 0;
-                const isDataFresh = (now - savedTime) < 24 * 60 * 60 * 1000; // 24 часа
-                
-                if (isDataFresh) {
-                    // Используем сохраненные данные
-                    referralData = parsedData.data;
-                    
-                    // Обновляем реферальную ссылку
-                    referralLink.value = referralData.referralLink;
-                    
-                    // Обновляем список скидок
-                    updateDiscountsList();
-                    
-                    // Обновляем список рефералов
-                    updateReferralsList();
-                    
-                    // Скрываем индикатор загрузки и выходим из функции
-                    loader.classList.remove('active');
-                    return;
-                }
-            } catch (e) {
-                console.error('Ошибка при парсинге сохраненных данных:', e);
-                // Если произошла ошибка при парсинге, продолжаем загрузку с сервера
-            }
-        }
-        
-        // Пытаемся получить данные с сервера
+        // Всегда пытаемся получить свежие данные с сервера
         try {
-            const response = await fetch('/api/referral-data');
+            // Получаем initData из Telegram WebApp
+            const initData = window.Telegram.WebApp.initData;
+            
+            // Создаем заголовки для запроса
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-Telegram-Web-App-Init-Data': initData
+            };
+            
+            // Отправляем запрос с заголовками
+            const response = await fetch('/api/referral-data', { headers });
             const data = await response.json();
             
             if (data.success) {
@@ -256,15 +229,47 @@ async function loadReferralData() {
                     data: referralData,
                     timestamp: Date.now()
                 }));
+                
+                console.log('Данные реферальной системы успешно загружены:', referralData);
             } else {
                 console.error('Ошибка при загрузке данных реферальной системы:', data.error);
-                // Генерируем временные данные, если не удалось получить с сервера
-                generateTemporaryReferralData();
+                
+                // Проверяем, есть ли данные в localStorage для использования в качестве резервных
+                const savedReferralData = localStorage.getItem('referralData');
+                
+                if (savedReferralData) {
+                    try {
+                        const parsedData = JSON.parse(savedReferralData);
+                        referralData = parsedData.data;
+                        console.log('Используем кэшированные данные из localStorage');
+                    } catch (e) {
+                        console.error('Ошибка при парсинге сохраненных данных:', e);
+                        generateTemporaryReferralData();
+                    }
+                } else {
+                    // Генерируем временные данные, если не удалось получить с сервера
+                    generateTemporaryReferralData();
+                }
             }
         } catch (error) {
             console.error('Ошибка при загрузке данных реферальной системы:', error);
-            // Генерируем временные данные при ошибке сети
-            generateTemporaryReferralData();
+            
+            // Проверяем, есть ли данные в localStorage для использования в качестве резервных
+            const savedReferralData = localStorage.getItem('referralData');
+            
+            if (savedReferralData) {
+                try {
+                    const parsedData = JSON.parse(savedReferralData);
+                    referralData = parsedData.data;
+                    console.log('Используем кэшированные данные из localStorage после ошибки сети');
+                } catch (e) {
+                    console.error('Ошибка при парсинге сохраненных данных:', e);
+                    generateTemporaryReferralData();
+                }
+            } else {
+                // Генерируем временные данные при ошибке сети
+                generateTemporaryReferralData();
+            }
         }
         
         // Обновляем реферальную ссылку
