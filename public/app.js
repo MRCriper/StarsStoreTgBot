@@ -1,6 +1,11 @@
 // Инициализация Telegram Web App
 const tgApp = window.Telegram.WebApp;
 
+// Переменные для обработки свайпов
+let touchStartX = 0;
+let touchEndX = 0;
+const minSwipeDistance = 50; // Минимальное расстояние для определения свайпа
+
 // Адаптация к теме Telegram
 document.documentElement.style.setProperty('--tg-theme-bg-color', tgApp.backgroundColor || '#0a0a1a');
 document.documentElement.style.setProperty('--tg-theme-text-color', tgApp.textColor || '#ffffff');
@@ -58,10 +63,17 @@ const referralLink = document.getElementById('referral-link');
 const shareButton = document.getElementById('share-button');
 const discountsContainer = document.getElementById('discounts-container');
 const referralsContainer = document.getElementById('referrals-container');
-const exchangeButton = document.getElementById('exchange-button'); // Кнопка биржи
+
+// Сохраняем состояние интерфейса
+let interfaceState = {
+    exchangeButtonVisible: true
+};
 
 // Функция для переключения между страницами
 function switchToPage(pageName) {
+    // Сохраняем предыдущую страницу для анимации
+    const prevPage = currentPage;
+    
     // Скрываем все страницы
     step1.classList.remove('active');
     step2.classList.remove('active');
@@ -76,8 +88,14 @@ function switchToPage(pageName) {
         referralNav.style.display = 'flex';
         mainNav.style.display = 'none'; // Скрываем правую стрелку на главной странице
         
-        // Добавляем анимацию
-        step1.classList.add('animate__fadeInRight');
+        // Восстанавливаем состояние кнопки биржи, если мы вернулись с реферальной страницы
+        if (prevPage === 'referral' && interfaceState.exchangeButtonVisible) {
+            // Находим кнопку биржи по ID или классу
+            const exchangeButton = document.querySelector('.exchange-button');
+            if (exchangeButton) {
+                exchangeButton.style.display = 'flex';
+            }
+        }
     } else if (pageName === 'step-2') {
         step2.classList.add('active');
         currentPage = 'step-2';
@@ -85,9 +103,6 @@ function switchToPage(pageName) {
         // Показываем левую навигационную стрелку (к реферальной системе)
         referralNav.style.display = 'flex';
         mainNav.style.display = 'none'; // Скрываем правую стрелку на странице шага 2
-        
-        // Добавляем анимацию
-        step2.classList.add('animate__fadeInLeft');
     } else if (pageName === 'referral') {
         referralPage.classList.add('active');
         currentPage = 'referral';
@@ -97,19 +112,76 @@ function switchToPage(pageName) {
         mainNav.style.display = 'flex';
         mainNav.querySelector('.nav-label').textContent = 'Главная';
         
+        // Сохраняем состояние кнопки биржи перед переходом на реферальную страницу
+        const exchangeButton = document.querySelector('.exchange-button');
+        if (exchangeButton) {
+            interfaceState.exchangeButtonVisible = exchangeButton.style.display !== 'none';
+        }
+        
         // Загружаем данные реферальной системы
         loadReferralData();
-        
-        // Добавляем анимацию
-        referralPage.classList.add('animate__fadeInLeft');
     }
     
-    // Очищаем предыдущие анимации через некоторое время
-    setTimeout(() => {
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.remove('animate__fadeInLeft', 'animate__fadeInRight', 'animate__fadeOutLeft', 'animate__fadeOutRight');
-        });
-    }, 500);
+    // Добавляем анимацию перехода между страницами
+    if (prevPage && prevPage !== pageName) {
+        addPageTransitionAnimation(prevPage, pageName);
+    }
+}
+
+// Функция для добавления анимации перехода между страницами
+function addPageTransitionAnimation(fromPage, toPage) {
+    // Определяем направление анимации
+    let fromAnimation, toAnimation;
+    
+    if (
+        (fromPage === 'step-1' && toPage === 'step-2') || 
+        (fromPage === 'step-1' && toPage === 'referral') ||
+        (fromPage === 'referral' && toPage === 'step-2')
+    ) {
+        // Переход вперед (влево)
+        fromAnimation = 'animate__fadeOutLeft';
+        toAnimation = 'animate__fadeInRight';
+    } else {
+        // Переход назад (вправо)
+        fromAnimation = 'animate__fadeOutRight';
+        toAnimation = 'animate__fadeInLeft';
+    }
+    
+    // Получаем элементы страниц
+    const fromElement = getPageElement(fromPage);
+    const toElement = getPageElement(toPage);
+    
+    if (fromElement && toElement) {
+        // Добавляем классы анимации
+        fromElement.classList.add('animate__animated', fromAnimation);
+        
+        // Убедимся, что целевая страница видна для анимации
+        toElement.style.display = 'block';
+        toElement.style.opacity = '0';
+        
+        // Запускаем анимацию с небольшой задержкой
+        setTimeout(() => {
+            fromElement.style.display = 'none';
+            toElement.classList.add('animate__animated', toAnimation);
+            toElement.style.opacity = '1';
+            
+            // Удаляем классы анимации после завершения
+            setTimeout(() => {
+                fromElement.classList.remove('animate__animated', fromAnimation);
+                toElement.classList.remove('animate__animated', toAnimation);
+            }, 500);
+        }, 300);
+    }
+}
+
+// Функция для получения элемента страницы по имени
+function getPageElement(pageName) {
+    switch (pageName) {
+        case 'step-1': return step1;
+        case 'step-2': return step2;
+        case 'referral': return referralPage;
+        default: return null;
+    }
 }
 
 // Обработчики для навигационных стрелок
@@ -125,126 +197,125 @@ mainNav.addEventListener('click', () => {
     }
 });
 
-// Обработчик для кнопки биржи
-if (exchangeButton) {
-    exchangeButton.addEventListener('click', () => {
-        // Открываем биржу или выполняем другое действие
-        tgApp.sendData(JSON.stringify({ action: 'open_exchange' }));
-    });
-}
-
-// Добавляем обработчики свайпов для навигации между страницами
-let touchStartX = 0;
-let touchEndX = 0;
-const MIN_SWIPE_DISTANCE = 50; // Минимальное расстояние для определения свайпа
-
-// Функция для обработки начала касания
-function handleTouchStart(event) {
-    touchStartX = event.touches[0].clientX;
-}
-
-// Функция для обработки окончания касания
-function handleTouchEnd(event) {
-    touchEndX = event.changedTouches[0].clientX;
-    handleSwipe();
-}
-
-// Функция для определения направления свайпа и переключения страницы
-function handleSwipe() {
-    const swipeDistance = touchEndX - touchStartX;
-    
-    // Проверяем, достаточно ли длинный свайп
-    if (Math.abs(swipeDistance) < MIN_SWIPE_DISTANCE) return;
-    
-    // Определяем направление свайпа и переключаем страницу
-    if (swipeDistance > 0) {
-        // Свайп вправо - возврат на предыдущую страницу
-        if (currentPage === 'step-2') {
-            switchToPage('step-1');
-        } else if (currentPage === 'referral') {
-            switchToPage('step-1');
-        }
-    } else {
-        // Свайп влево - переход на следующую страницу
-        if (currentPage === 'step-1') {
-            if (starsInput.value && parseInt(starsInput.value) > 0) {
-                switchToPage('step-2');
-            }
-        }
-    }
-}
-
-// Добавляем обработчики событий касания для всех страниц
-document.querySelectorAll('.page').forEach(page => {
-    page.addEventListener('touchstart', handleTouchStart, false);
-    page.addEventListener('touchend', handleTouchEnd, false);
-});
-
 // Функция для загрузки данных реферальной системы
 async function loadReferralData() {
     try {
-        // Показываем загрузчик
-        loader.style.display = 'flex';
+        // Показываем индикатор загрузки
+        loader.classList.add('active');
         
-        // Получаем данные от бота
-        const userData = await tgApp.sendData(JSON.stringify({ action: 'get_referral_data' }));
-        const data = JSON.parse(userData);
+        // Сначала проверяем, есть ли данные в localStorage
+        const savedReferralData = localStorage.getItem('referralData');
         
-        // Генерируем уникальную реферальную ссылку с ID пользователя
-        const userId = tgApp.initDataUnsafe.user.id;
-        // Добавляем случайный параметр для уникальности ссылки
-        const uniqueId = `${userId}_${Math.floor(Math.random() * 1000000)}`;
-        referralLink.value = `https://t.me/StarsStoreBot?start=${uniqueId}`;
-        
-        // Отображаем информацию о скидках
-        if (data.discounts && data.discounts.length > 0) {
-            discountsContainer.innerHTML = '';
-            data.discounts.forEach(discount => {
-                const discountItem = document.createElement('div');
-                discountItem.classList.add('discount-item');
-                discountItem.innerHTML = `
-                    <div class="discount-info">
-                        <div class="discount-percent">${discount.percent}%</div>
-                        <div class="discount-details">
-                            <div class="discount-name">${discount.name}</div>
-                            <div class="discount-description">${discount.description}</div>
-                        </div>
-                    </div>
-                `;
-                discountsContainer.appendChild(discountItem);
-            });
-        } else {
-            discountsContainer.innerHTML = '<div class="no-data">У вас пока нет доступных скидок</div>';
+        if (savedReferralData) {
+            try {
+                // Пытаемся распарсить сохраненные данные
+                const parsedData = JSON.parse(savedReferralData);
+                
+                // Проверяем, что данные не устарели (не старше 24 часов)
+                const now = Date.now();
+                const savedTime = parsedData.timestamp || 0;
+                const isDataFresh = (now - savedTime) < 24 * 60 * 60 * 1000; // 24 часа
+                
+                if (isDataFresh) {
+                    // Используем сохраненные данные
+                    referralData = parsedData.data;
+                    
+                    // Обновляем реферальную ссылку
+                    referralLink.value = referralData.referralLink;
+                    
+                    // Обновляем список скидок
+                    updateDiscountsList();
+                    
+                    // Обновляем список рефералов
+                    updateReferralsList();
+                    
+                    // Скрываем индикатор загрузки и выходим из функции
+                    loader.classList.remove('active');
+                    return;
+                }
+            } catch (e) {
+                console.error('Ошибка при парсинге сохраненных данных:', e);
+                // Если произошла ошибка при парсинге, продолжаем загрузку с сервера
+            }
         }
         
-        // Отображаем информацию о рефералах
-        if (data.referrals && data.referrals.length > 0) {
-            referralsContainer.innerHTML = '';
-            data.referrals.forEach(referral => {
-                const referralItem = document.createElement('div');
-                referralItem.classList.add('referral-item');
-                referralItem.innerHTML = `
-                    <div class="referral-avatar">
-                        <img src="${referral.avatar || 'img/default-avatar.png'}" alt="Avatar">
-                    </div>
-                    <div class="referral-info">
-                        <div class="referral-name">${referral.name}</div>
-                        <div class="referral-date">Присоединился: ${new Date(referral.date).toLocaleDateString()}</div>
-                    </div>
-                `;
-                referralsContainer.appendChild(referralItem);
-            });
-        } else {
-            referralsContainer.innerHTML = '<div class="no-data">У вас пока нет рефералов</div>';
+        // Пытаемся получить данные с сервера
+        try {
+            const response = await fetch('/api/referral-data');
+            const data = await response.json();
+            
+            if (data.success) {
+                referralData = data.data;
+                
+                // Сохраняем данные в localStorage с временной меткой
+                localStorage.setItem('referralData', JSON.stringify({
+                    data: referralData,
+                    timestamp: Date.now()
+                }));
+            } else {
+                console.error('Ошибка при загрузке данных реферальной системы:', data.error);
+                // Генерируем временные данные, если не удалось получить с сервера
+                generateTemporaryReferralData();
+            }
+        } catch (error) {
+            console.error('Ошибка при загрузке данных реферальной системы:', error);
+            // Генерируем временные данные при ошибке сети
+            generateTemporaryReferralData();
         }
+        
+        // Обновляем реферальную ссылку
+        referralLink.value = referralData.referralLink;
+        
+        // Обновляем список скидок
+        updateDiscountsList();
+        
+        // Обновляем список рефералов
+        updateReferralsList();
     } catch (error) {
-        console.error('Ошибка при загрузке данных реферальной системы:', error);
-        discountsContainer.innerHTML = '<div class="error">Ошибка при загрузке данных</div>';
-        referralsContainer.innerHTML = '<div class="error">Ошибка при загрузке данных</div>';
+        console.error('Непредвиденная ошибка при загрузке данных:', error);
+        // Генерируем временные данные при любой непредвиденной ошибке
+        generateTemporaryReferralData();
+        
+        // Обновляем интерфейс с временными данными
+        referralLink.value = referralData.referralLink;
+        updateDiscountsList();
+        updateReferralsList();
     } finally {
-        // Скрываем загрузчик
-        loader.style.display = 'none';
+        // Скрываем индикатор загрузки
+        loader.classList.remove('active');
     }
+}
+
+// Функция для генерации временных данных реферальной системы
+function generateTemporaryReferralData() {
+    // Получаем данные текущего пользователя
+    const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
+    const username = currentUser && currentUser.username ? currentUser.username : 'user';
+    
+    // Генерируем уникальный код для реферальной ссылки
+    const uniqueCode = Math.random().toString(36).substring(2, 10);
+    
+    // Создаем временные данные
+    referralData = {
+        referralLink: `https://t.me/StarsStoreBot?start=ref_${username}_${uniqueCode}`,
+        referrals: [],
+        discounts: []
+    };
+    
+    // Сохраняем временные данные в localStorage
+    localStorage.setItem('referralData', JSON.stringify({
+        data: referralData,
+        timestamp: Date.now()
+    }));
+    
+    // Показываем уведомление пользователю
+    setTimeout(() => {
+        tgApp.showPopup({
+            title: 'Временная ссылка',
+            message: 'Не удалось загрузить данные с сервера. Создана временная реферальная ссылка.',
+            buttons: [{type: 'ok'}]
+        });
+    }, 500);
 }
 
 // Функция для обновления списка скидок
@@ -309,6 +380,13 @@ function updateReferralsList() {
 
 // Обработчик для кнопки "Поделиться"
 shareButton.addEventListener('click', () => {
+    // Проверяем, что реферальная ссылка существует
+    if (!referralLink.value) {
+        // Если ссылки нет, генерируем временную
+        generateTemporaryReferralData();
+        referralLink.value = referralData.referralLink;
+    }
+    
     // Копируем реферальную ссылку в буфер обмена
     referralLink.select();
     document.execCommand('copy');
@@ -323,7 +401,7 @@ shareButton.addEventListener('click', () => {
     // Если доступен нативный метод Telegram для шаринга, используем его
     if (tgApp.showSharePopup) {
         tgApp.showSharePopup({
-            text: `Присоединяйся к Stars Store и получай звезды для своего Telegram аккаунта! ${referralData.referralLink}`
+            text: `Присоединяйся к Stars Store и получай звезды для своего Telegram аккаунта! ${referralLink.value}`
         });
     }
 });
@@ -334,6 +412,8 @@ const PRICE_PER_STAR = 1.5;
 // Максимальное количество звезд
 const MAX_STARS = 1000000;
 
+// Текущий выбранный пакет
+let selectedPackage = null;
 let selectedStars = 0;
 let selectedPrice = 0;
 
@@ -343,6 +423,19 @@ let referralData = {
     referrals: [],
     discounts: []
 };
+
+// Пытаемся загрузить данные из localStorage при инициализации
+try {
+    const savedReferralData = localStorage.getItem('referralData');
+    if (savedReferralData) {
+        const parsedData = JSON.parse(savedReferralData);
+        if (parsedData && parsedData.data) {
+            referralData = parsedData.data;
+        }
+    }
+} catch (e) {
+    console.error('Ошибка при загрузке сохраненных данных реферальной системы:', e);
+}
 
 // Форматирование цены
 function formatPrice(price) {
@@ -428,13 +521,13 @@ toStep2Btn.addEventListener('click', () => {
     summaryStars.textContent = selectedStars + ' ⭐';
     summaryPrice.textContent = formatPrice(selectedPrice);
     
-    // Переключаем шаги
-    step1.classList.remove('active');
-    step1.classList.add('animate__animated', 'animate__fadeOutLeft');
-    
-    // Убедимся, что второй шаг изначально виден для анимации
-    step2.style.display = 'block';
-    step2.style.opacity = '0';
+// Переключаем шаги с анимацией свайпа
+step1.classList.remove('active');
+step1.classList.add('animate__animated', 'animate__fadeOutLeft');
+
+// Убедимся, что второй шаг изначально виден для анимации
+step2.style.display = 'block';
+step2.style.opacity = '0';
     
     setTimeout(() => {
         step1.style.display = 'none';
@@ -449,9 +542,9 @@ toStep2Btn.addEventListener('click', () => {
 
 // Обработчик для кнопки "Назад" к шагу 1
 backToStep1Btn.addEventListener('click', () => {
-    // Переключаем шаги
-    step2.classList.remove('active');
-    step2.classList.add('animate__animated', 'animate__fadeOutRight');
+// Переключаем шаги с анимацией свайпа
+step2.classList.remove('active');
+step2.classList.add('animate__animated', 'animate__fadeOutRight');
     
     setTimeout(() => {
         step2.style.display = 'none';
@@ -818,6 +911,69 @@ function getUserFromCache(username) {
 
 // Инициализация выпадающего списка контактов
 initContactsDropdown();
+
+// Добавляем обработчики событий для свайпов
+function initSwipeHandlers() {
+    // Получаем все страницы
+    const pages = [step1, step2, referralPage];
+    
+    // Добавляем обработчики для каждой страницы
+    pages.forEach(page => {
+        // Обработчик начала касания
+        page.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        // Обработчик окончания касания
+        page.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+    });
+}
+
+// Функция для обработки свайпа
+function handleSwipe() {
+    // Вычисляем расстояние свайпа
+    const swipeDistance = touchEndX - touchStartX;
+    
+    // Если расстояние меньше минимального, не считаем за свайп
+    if (Math.abs(swipeDistance) < minSwipeDistance) return;
+    
+    // Определяем направление свайпа
+    if (swipeDistance > 0) {
+        // Свайп вправо - переход на предыдущую страницу
+        handleRightSwipe();
+    } else {
+        // Свайп влево - переход на следующую страницу
+        handleLeftSwipe();
+    }
+}
+
+// Обработка свайпа влево
+function handleLeftSwipe() {
+    if (currentPage === 'step-1') {
+        // С главной страницы переходим на шаг 2
+        switchToPage('step-2');
+    } else if (currentPage === 'referral') {
+        // С реферальной страницы переходим на главную
+        switchToPage('step-1');
+    }
+}
+
+// Обработка свайпа вправо
+function handleRightSwipe() {
+    if (currentPage === 'step-2') {
+        // Со второго шага возвращаемся на главную
+        switchToPage('step-1');
+    } else if (currentPage === 'step-1') {
+        // С главной страницы переходим на реферальную
+        switchToPage('referral');
+    }
+}
+
+// Инициализируем обработчики свайпов
+initSwipeHandlers();
 
 // Обработчик для кнопки "Купить"
 buyButton.addEventListener('click', () => {
