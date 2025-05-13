@@ -58,6 +58,7 @@ const referralLink = document.getElementById('referral-link');
 const shareButton = document.getElementById('share-button');
 const discountsContainer = document.getElementById('discounts-container');
 const referralsContainer = document.getElementById('referrals-container');
+const exchangeButton = document.getElementById('exchange-button'); // Кнопка биржи
 
 // Функция для переключения между страницами
 function switchToPage(pageName) {
@@ -71,16 +72,22 @@ function switchToPage(pageName) {
         step1.classList.add('active');
         currentPage = 'step-1';
         
-        // Показываем обе навигационные стрелки
+        // Показываем левую навигационную стрелку (к реферальной системе)
         referralNav.style.display = 'flex';
         mainNav.style.display = 'none'; // Скрываем правую стрелку на главной странице
+        
+        // Добавляем анимацию
+        step1.classList.add('animate__fadeInRight');
     } else if (pageName === 'step-2') {
         step2.classList.add('active');
         currentPage = 'step-2';
         
-        // Показываем обе навигационные стрелки
+        // Показываем левую навигационную стрелку (к реферальной системе)
         referralNav.style.display = 'flex';
         mainNav.style.display = 'none'; // Скрываем правую стрелку на странице шага 2
+        
+        // Добавляем анимацию
+        step2.classList.add('animate__fadeInLeft');
     } else if (pageName === 'referral') {
         referralPage.classList.add('active');
         currentPage = 'referral';
@@ -92,7 +99,17 @@ function switchToPage(pageName) {
         
         // Загружаем данные реферальной системы
         loadReferralData();
+        
+        // Добавляем анимацию
+        referralPage.classList.add('animate__fadeInLeft');
     }
+    
+    // Очищаем предыдущие анимации через некоторое время
+    setTimeout(() => {
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('animate__fadeInLeft', 'animate__fadeInRight', 'animate__fadeOutLeft', 'animate__fadeOutRight');
+        });
+    }, 500);
 }
 
 // Обработчики для навигационных стрелок
@@ -108,35 +125,125 @@ mainNav.addEventListener('click', () => {
     }
 });
 
+// Обработчик для кнопки биржи
+if (exchangeButton) {
+    exchangeButton.addEventListener('click', () => {
+        // Открываем биржу или выполняем другое действие
+        tgApp.sendData(JSON.stringify({ action: 'open_exchange' }));
+    });
+}
+
+// Добавляем обработчики свайпов для навигации между страницами
+let touchStartX = 0;
+let touchEndX = 0;
+const MIN_SWIPE_DISTANCE = 50; // Минимальное расстояние для определения свайпа
+
+// Функция для обработки начала касания
+function handleTouchStart(event) {
+    touchStartX = event.touches[0].clientX;
+}
+
+// Функция для обработки окончания касания
+function handleTouchEnd(event) {
+    touchEndX = event.changedTouches[0].clientX;
+    handleSwipe();
+}
+
+// Функция для определения направления свайпа и переключения страницы
+function handleSwipe() {
+    const swipeDistance = touchEndX - touchStartX;
+    
+    // Проверяем, достаточно ли длинный свайп
+    if (Math.abs(swipeDistance) < MIN_SWIPE_DISTANCE) return;
+    
+    // Определяем направление свайпа и переключаем страницу
+    if (swipeDistance > 0) {
+        // Свайп вправо - возврат на предыдущую страницу
+        if (currentPage === 'step-2') {
+            switchToPage('step-1');
+        } else if (currentPage === 'referral') {
+            switchToPage('step-1');
+        }
+    } else {
+        // Свайп влево - переход на следующую страницу
+        if (currentPage === 'step-1') {
+            if (starsInput.value && parseInt(starsInput.value) > 0) {
+                switchToPage('step-2');
+            }
+        }
+    }
+}
+
+// Добавляем обработчики событий касания для всех страниц
+document.querySelectorAll('.page').forEach(page => {
+    page.addEventListener('touchstart', handleTouchStart, false);
+    page.addEventListener('touchend', handleTouchEnd, false);
+});
+
 // Функция для загрузки данных реферальной системы
 async function loadReferralData() {
     try {
-        // Показываем индикатор загрузки
-        loader.classList.add('active');
+        // Показываем загрузчик
+        loader.style.display = 'flex';
         
-        // Получаем данные о реферальной системе с сервера
-        const response = await fetch('/api/referral-data');
-        const data = await response.json();
+        // Получаем данные от бота
+        const userData = await tgApp.sendData(JSON.stringify({ action: 'get_referral_data' }));
+        const data = JSON.parse(userData);
         
-        if (data.success) {
-            referralData = data.data;
-            
-            // Обновляем реферальную ссылку
-            referralLink.value = referralData.referralLink;
-            
-            // Обновляем список скидок
-            updateDiscountsList();
-            
-            // Обновляем список рефералов
-            updateReferralsList();
+        // Генерируем уникальную реферальную ссылку с ID пользователя
+        const userId = tgApp.initDataUnsafe.user.id;
+        // Добавляем случайный параметр для уникальности ссылки
+        const uniqueId = `${userId}_${Math.floor(Math.random() * 1000000)}`;
+        referralLink.value = `https://t.me/StarsStoreBot?start=${uniqueId}`;
+        
+        // Отображаем информацию о скидках
+        if (data.discounts && data.discounts.length > 0) {
+            discountsContainer.innerHTML = '';
+            data.discounts.forEach(discount => {
+                const discountItem = document.createElement('div');
+                discountItem.classList.add('discount-item');
+                discountItem.innerHTML = `
+                    <div class="discount-info">
+                        <div class="discount-percent">${discount.percent}%</div>
+                        <div class="discount-details">
+                            <div class="discount-name">${discount.name}</div>
+                            <div class="discount-description">${discount.description}</div>
+                        </div>
+                    </div>
+                `;
+                discountsContainer.appendChild(discountItem);
+            });
         } else {
-            console.error('Ошибка при загрузке данных реферальной системы:', data.error);
+            discountsContainer.innerHTML = '<div class="no-data">У вас пока нет доступных скидок</div>';
+        }
+        
+        // Отображаем информацию о рефералах
+        if (data.referrals && data.referrals.length > 0) {
+            referralsContainer.innerHTML = '';
+            data.referrals.forEach(referral => {
+                const referralItem = document.createElement('div');
+                referralItem.classList.add('referral-item');
+                referralItem.innerHTML = `
+                    <div class="referral-avatar">
+                        <img src="${referral.avatar || 'img/default-avatar.png'}" alt="Avatar">
+                    </div>
+                    <div class="referral-info">
+                        <div class="referral-name">${referral.name}</div>
+                        <div class="referral-date">Присоединился: ${new Date(referral.date).toLocaleDateString()}</div>
+                    </div>
+                `;
+                referralsContainer.appendChild(referralItem);
+            });
+        } else {
+            referralsContainer.innerHTML = '<div class="no-data">У вас пока нет рефералов</div>';
         }
     } catch (error) {
         console.error('Ошибка при загрузке данных реферальной системы:', error);
+        discountsContainer.innerHTML = '<div class="error">Ошибка при загрузке данных</div>';
+        referralsContainer.innerHTML = '<div class="error">Ошибка при загрузке данных</div>';
     } finally {
-        // Скрываем индикатор загрузки
-        loader.classList.remove('active');
+        // Скрываем загрузчик
+        loader.style.display = 'none';
     }
 }
 
@@ -227,8 +334,6 @@ const PRICE_PER_STAR = 1.5;
 // Максимальное количество звезд
 const MAX_STARS = 1000000;
 
-// Текущий выбранный пакет
-let selectedPackage = null;
 let selectedStars = 0;
 let selectedPrice = 0;
 

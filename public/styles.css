@@ -9,7 +9,9 @@
     --primary-dark: #8a5fd7;
     --primary-light: #b08ff0;
     --secondary-color: #0f1030;
+    --secondary-hover: #1a1b4b;
     --accent-color: #4fc3f7; /* Голубой как на логотипе */
+    --accent-hover: #3ab1e5;
     --accent-dark: #3ab1e5;
     --star-color: #ffeb3b; /* Цвет звезды с логотипа */
     --success-color: #06D6A0;
@@ -581,7 +583,8 @@ main {
 /* ===== NAVIGATION BUTTONS ===== */
 .navigation-buttons {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: center;
     margin-top: 24px;
 }
 
@@ -603,6 +606,30 @@ main {
     border: none;
     margin-left: auto;
     box-shadow: 0 0 15px rgba(157, 113, 234, 0.4);
+}
+
+.exchange-button {
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+    margin-top: 10px;
+}
+
+.exchange-button:hover {
+    background-color: var(--secondary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
 }
 
 .next-step-btn:hover {
