@@ -25,6 +25,13 @@ const starsstoreSection = document.getElementById('starsstore-section');
 const fragmentGiftList = document.getElementById('fragment-gift-list');
 const starsstoreGiftList = document.getElementById('starsstore-gift-list');
 const loader = document.getElementById('loader');
+const mainNav = document.getElementById('main-nav');
+
+// Добавляем обработчик для кнопки "Главная"
+mainNav.addEventListener('click', () => {
+    // Перенаправляем на главную страницу
+    window.location.href = 'index.html';
+});
 
 // Переключение режимов
 function switchMode(mode) {
