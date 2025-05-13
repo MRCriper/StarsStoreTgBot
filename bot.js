@@ -366,7 +366,7 @@ bot.on('web_app_data', async (msg) => {
   
   // Предлагаем пользователю поделиться реферальной ссылкой
   setTimeout(() => {
-    const referralLink = `https://t.me/stars_store_bot?start=ref_${userId}`;
+    const referralLink = `https://t.me/pasha321bot?start=ref_${userId}`;
     
     bot.sendMessage(
       chatId,
@@ -439,7 +439,7 @@ bot.on('message', (msg) => {
   // Проверяем, что это не команда и не данные из веб-приложения
   if (!msg.text || !msg.text.startsWith('/') && !msg.web_app_data) {
     const chatId = msg.chat.id;
-    const webAppUrl = `https://42150a8d-14a6-4d03-8420-8a80d6225b8b-00-2wgifpmi2x174.sisko.replit.dev/`;
+    const webAppUrl = `https://4008db5c-30f4-4c1f-9e72-9277a9789452-00-3dj86x3mdpb5x.sisko.replit.dev/`;
     
     // Создаем клавиатуру с кнопкой для открытия Mini App
     const keyboard = {

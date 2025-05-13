@@ -203,6 +203,7 @@ mainNav.addEventListener('click', () => {
 // Функция для загрузки данных реферальной системы
 async function loadReferralData() {
     try {
+        localStorage.clear();
         // Показываем индикатор загрузки
         loader.classList.add('active');
         
