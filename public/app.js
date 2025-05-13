@@ -57,16 +57,19 @@ const contactsDropdown = document.getElementById('contacts-dropdown');
 const referralPage = document.getElementById('referral-page');
 const referralNav = document.getElementById('referral-nav');
 const exchangeNav = document.getElementById('exchange-nav');
-const mainNav = document.createElement('div'); // Создаем элемент, если его нет в DOM
-mainNav.className = 'swipe-navigation right-nav';
-mainNav.id = 'main-nav';
-mainNav.innerHTML = `
-    <div class="nav-arrow">
-        <i class="fas fa-chevron-right"></i>
-    </div>
-    <div class="nav-label">Главная</div>
-`;
-document.body.appendChild(mainNav); // Добавляем в DOM
+const mainNav = document.getElementById('main-nav') || document.createElement('div'); // Используем существующий элемент или создаем новый
+if (!document.getElementById('main-nav')) {
+    mainNav.className = 'swipe-navigation right-nav';
+    mainNav.id = 'main-nav';
+    mainNav.innerHTML = `
+        <div class="nav-arrow">
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="nav-label">Главная</div>
+    `;
+    // Добавляем в DOM только если элемента еще нет
+    document.body.appendChild(mainNav);
+}
 const referralLink = document.getElementById('referral-link');
 const shareButton = document.getElementById('share-button');
 const discountsContainer = document.getElementById('discounts-container');

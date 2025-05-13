@@ -38,8 +38,12 @@ tgApp.onEvent('viewportChanged', function(data) {
     }
 });
 
-// Запрашиваем данные о viewport
-tgApp.requestViewport();
+// Запрашиваем данные о viewport, если метод существует
+if (typeof tgApp.requestViewport === 'function') {
+    tgApp.requestViewport();
+} else {
+    console.log('Метод requestViewport не поддерживается в текущей версии Telegram Web App API');
+}
 
 // Сообщаем Telegram, что приложение готово
 tgApp.ready();
@@ -55,10 +59,15 @@ const loader = document.getElementById('loader');
 const mainNav = document.getElementById('main-nav');
 
 // Добавляем обработчик для кнопки "Главная"
-mainNav.addEventListener('click', () => {
-    // Перенаправляем на главную страницу
-    window.location.href = 'index.html';
-});
+if (mainNav) {
+    console.log('Найдена кнопка "Главная", добавляем обработчик');
+    mainNav.addEventListener('click', function() {
+        console.log('Клик по кнопке "Главная"');
+        window.location.href = 'index.html';
+    });
+} else {
+    console.log('Кнопка "Главная" не найдена');
+}
 
 // Переключение режимов
 function switchMode(mode) {
@@ -87,25 +96,33 @@ async function loadGifts(mode) {
         
         // В зависимости от режима, загружаем подарки из разных источников
         if (mode === 'fragment') {
-            // Для Fragment Market используем API
+            // Для Fragment Market используем API или локальный JSON файл для тестирования
             try {
                 // Получаем initData из Telegram WebApp
                 const initData = window.Telegram.WebApp.initData;
                 
-                // Создаем заголовки для запроса
-                const headers = {
-                    'Content-Type': 'application/json',
-                    'X-Telegram-Web-App-Init-Data': initData
-                };
-                
-                // Отправляем запрос к API для получения подарков Fragment Market
-                const response = await fetch('/api/fragment-gifts', { headers });
-                const data = await response.json();
-                
-                if (data.success) {
+                // Если мы запускаем локально или нет initData, используем локальный JSON файл
+                if (!initData) {
+                    console.log('Используем локальный JSON файл для Fragment Market');
+                    const response = await fetch('fragment_gifts.json');
+                    const data = await response.json();
                     gifts = data.gifts;
                 } else {
-                    throw new Error(data.error || 'Не удалось загрузить подарки Fragment Market');
+                    // Создаем заголовки для запроса
+                    const headers = {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Web-App-Init-Data': initData
+                    };
+                    
+                    // Отправляем запрос к API для получения подарков Fragment Market
+                    const response = await fetch('/api/fragment-gifts', { headers });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        gifts = data.gifts;
+                    } else {
+                        throw new Error(data.error || 'Не удалось загрузить подарки Fragment Market');
+                    }
                 }
             } catch (apiError) {
                 console.error('Ошибка при загрузке подарков Fragment Market через API:', apiError);
@@ -116,16 +133,34 @@ async function loadGifts(mode) {
                     buttons: [{type: 'ok'}]
                 });
                 
-                // Возвращаем пустой массив подарков
-                gifts = [];
+                // Пробуем загрузить из локального JSON файла как запасной вариант
+                try {
+                    console.log('Пробуем загрузить из локального JSON файла как запасной вариант');
+                    const response = await fetch('fragment_gifts.json');
+                    const data = await response.json();
+                    gifts = data.gifts;
+                } catch (fallbackError) {
+                    console.error('Ошибка при загрузке из локального JSON файла:', fallbackError);
+                    gifts = [];
+                }
             }
         } else {
             // Для StarsStore Market используем JSON файл
-            const response = await fetch(`${mode}_gifts.json`);
-            const data = await response.json();
-            gifts = data.gifts;
+            console.log('Загружаем подарки StarsStore из файла:', `${mode}_gifts.json`);
+            try {
+                const response = await fetch(`${mode}_gifts.json`);
+                console.log('Ответ получен:', response);
+                const data = await response.json();
+                console.log('Данные StarsStore:', data);
+                gifts = data.gifts;
+                console.log('Подарки StarsStore:', gifts);
+            } catch (error) {
+                console.error('Ошибка при загрузке подарков StarsStore:', error);
+                gifts = [];
+            }
         }
         
+        console.log(`Отрисовываем ${gifts.length} подарков для режима ${mode}`);
         renderGifts(gifts, mode);
     } catch (error) {
         console.error(`Ошибка при загрузке подарков ${mode}:`, error);
