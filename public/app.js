@@ -40,8 +40,6 @@ let currentPage = 'step-1';
 // Получаем элементы DOM
 const usernameInput = document.getElementById('username');
 const starsInput = document.getElementById('stars');
-const decreaseBtn = document.getElementById('decrease');
-const increaseBtn = document.getElementById('increase');
 const priceElement = document.getElementById('price');
 const buyButton = document.getElementById('buy-button');
 const customPackageBtn = document.getElementById('custom-package-btn');
@@ -459,23 +457,6 @@ function updateCustomPrice() {
     const totalPrice = stars * PRICE_PER_STAR;
     priceElement.textContent = formatPrice(totalPrice).replace(' ₽', '');
     
-    // Обновляем состояние кнопок
-    decreaseBtn.disabled = stars <= 50;
-    increaseBtn.disabled = stars >= MAX_STARS;
-    
-    // Визуальная обратная связь
-    if (stars <= 50) {
-        decreaseBtn.style.opacity = '0.5';
-    } else {
-        decreaseBtn.style.opacity = '1';
-    }
-    
-    if (stars >= MAX_STARS) {
-        increaseBtn.style.opacity = '0.5';
-    } else {
-        increaseBtn.style.opacity = '1';
-    }
-    
     // Анимация изменения цены
     priceElement.classList.add('price-updated');
     setTimeout(() => {
@@ -483,22 +464,6 @@ function updateCustomPrice() {
     }, 300);
 }
 
-// Обработчики для кнопок увеличения/уменьшения количества звезд
-decreaseBtn.addEventListener('click', () => {
-    const currentValue = parseInt(starsInput.value) || 50;
-    if (currentValue > 50) {
-        starsInput.value = currentValue - 1;
-        updateCustomPrice();
-    }
-});
-
-increaseBtn.addEventListener('click', () => {
-    const currentValue = parseInt(starsInput.value) || 50;
-    if (currentValue < MAX_STARS) {
-        starsInput.value = currentValue + 1;
-        updateCustomPrice();
-    }
-});
 
 // Обработчик изменения значения в поле ввода
 starsInput.addEventListener('input', () => {
@@ -514,6 +479,9 @@ starsInput.addEventListener('input', () => {
     // Обновляем цену
     updateCustomPrice();
 });
+
+// Обновляем цену при загрузке страницы
+starsInput.addEventListener('change', updateCustomPrice);
 
 // Предотвращаем ввод нечисловых символов
 starsInput.addEventListener('keypress', (e) => {
@@ -539,6 +507,9 @@ toStep2Btn.addEventListener('click', () => {
     setTimeout(() => {
         usernameInput.focus();
     }, 600);
+    
+    // Логируем для отладки
+    console.log('Переход к шагу 2. Выбрано звёзд:', selectedStars, 'Цена:', selectedPrice);
 });
 
 // Обработчик для кнопки "Назад" к шагу 1
