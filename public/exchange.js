@@ -14,7 +14,34 @@ document.body.style.color = getComputedStyle(document.documentElement).getProper
 
 // Настройка Telegram Web App
 tgApp.enableClosingConfirmation();
+
+// Правильная инициализация viewport
 tgApp.expand();
+
+// Запрашиваем актуальные данные о viewport
+tgApp.onEvent('viewportChanged', function(data) {
+    // Устанавливаем CSS переменные для viewport
+    document.documentElement.style.setProperty('--tg-viewport-height', `${data.height}px`);
+    document.documentElement.style.setProperty('--tg-viewport-width', `${data.width}px`);
+    document.documentElement.style.setProperty('--tg-viewport-stable-height', `${data.height}px`);
+    
+    // Обновляем стили для body и app-container
+    document.body.style.height = `${data.height}px`;
+    document.body.style.maxHeight = `${data.height}px`;
+    document.body.style.overflow = 'hidden';
+    
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+        appContainer.style.height = `${data.height}px`;
+        appContainer.style.overflowY = 'auto';
+        appContainer.style.overflowX = 'hidden';
+    }
+});
+
+// Запрашиваем данные о viewport
+tgApp.requestViewport();
+
+// Сообщаем Telegram, что приложение готово
 tgApp.ready();
 
 // Получаем элементы DOM

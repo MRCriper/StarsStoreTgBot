@@ -25,6 +25,10 @@
     --text-glow: 0 0 10px rgba(255, 255, 255, 0.7);
     --swipe-nav-width: 60px;
     --swipe-nav-opacity: 0.8;
+    /* Переменные для viewport */
+    --tg-viewport-height: 100vh;
+    --tg-viewport-width: 100vw;
+    --tg-viewport-stable-height: 100vh;
 }
 
 * {
