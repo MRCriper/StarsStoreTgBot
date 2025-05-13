@@ -6,48 +6,93 @@
     <title>Биржа подарков</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 </head>
-<body class="exchange-page">
-    <div class="container">
-        <div class="mode-selector">
-            <button id="fragment-mode" class="mode-btn active">Fragment Market</button>
-            <button id="starsstore-mode" class="mode-btn">StarsStore Market</button>
+<body class="space-background">
+    <!-- Навигационные стрелки для свайпа -->
+    <div class="swipe-navigation left-nav" id="main-nav">
+        <div class="nav-arrow">
+            <i class="fas fa-chevron-left"></i>
         </div>
-
-        <!-- Секция Fragment Market -->
-        <section id="fragment-section" class="market-section active">
-            <div class="market-header">
-                <h2>Fragment Market</h2>
-                <p>Сторонняя биржа подарков Telegram</p>
-            </div>
-            <div class="market-content">
-                <div class="gift-list" id="fragment-gift-list">
-                    <!-- Здесь будут отображаться подарки из Fragment Market -->
-                </div>
-            </div>
-        </section>
-
-        <!-- Секция StarsStore Market -->
-        <section id="starsstore-section" class="market-section">
-            <div class="market-header">
-                <h2>StarsStore Market</h2>
-                <p>Внутренняя биржа подарков Telegram</p>
-            </div>
-            <div class="market-content">
-                <div class="gift-list" id="starsstore-gift-list">
-                    <!-- Здесь будут отображаться подарки из StarsStore Market -->
-                </div>
-            </div>
-        </section>
+        <div class="nav-label">Главная</div>
     </div>
+    
+    <div class="app-container">
+        <header class="animate__animated animate__fadeInDown">
+            <div class="logo">
+                <img src="logo.jpg" alt="Stars Store Logo" class="logo-img">
+                <h1>Stars Store</h1>
+            </div>
+            <p>Биржа подарков для вашего Telegram аккаунта</p>
+        </header>
+        
+        <main>
+            <section id="exchange-page" class="page active animate__animated animate__fadeIn">
+                <h2 class="section-title"><i class="fas fa-exchange-alt"></i> Биржа подарков</h2>
+                
+                <div class="card">
+                    <div class="mode-selector">
+                        <button id="fragment-mode" class="mode-btn active">Fragment Market</button>
+                        <button id="starsstore-mode" class="mode-btn">StarsStore Market</button>
+                    </div>
 
+                    <!-- Секция Fragment Market -->
+                    <section id="fragment-section" class="market-section active">
+                        <div class="market-header">
+                            <h3>Fragment Market</h3>
+                            <p>Сторонняя биржа подарков Telegram</p>
+                        </div>
+                        <div class="market-content">
+                            <div class="gift-list" id="fragment-gift-list">
+                                <!-- Здесь будут отображаться подарки из Fragment Market -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Секция StarsStore Market -->
+                    <section id="starsstore-section" class="market-section">
+                        <div class="market-header">
+                            <h3>StarsStore Market</h3>
+                            <p>Внутренняя биржа подарков Telegram</p>
+                        </div>
+                        <div class="market-content">
+                            <div class="gift-list" id="starsstore-gift-list">
+                                <!-- Здесь будут отображаться подарки из StarsStore Market -->
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="animate__animated animate__fadeInUp">
+            <div class="stars-decoration">
+                <i class="fas fa-star star-1"></i>
+                <i class="fas fa-star star-2"></i>
+                <i class="fas fa-star star-3"></i>
+                <i class="fas fa-meteor star-2" style="left: 30%; top: 20px;"></i>
+                <i class="fas fa-rocket star-3" style="left: 70%; top: 15px; transform: rotate(45deg);"></i>
+            </div>
+            <p>© 2025 Stars Store</p>
+        </footer>
+    </div>
+    
     <!-- Лоадер -->
-    <div id="loader" class="loader" style="display: none;">
-        <div class="loader-spinner"></div>
+    <div class="loader-overlay" id="loader">
+        <div class="loader">
+            <div class="star-loader">
+                <i class="fas fa-rocket rocket-animation"></i>
+            </div>
+            <p>Подготовка к запуску...</p>
+            <div class="space-animation">
+                <div class="stars"></div>
+                <div class="stars2"></div>
+                <div class="stars3"></div>
+            </div>
+        </div>
     </div>
-
+    
     <script src="exchange.js"></script>
 </body>
 </html>
