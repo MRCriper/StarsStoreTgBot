@@ -197,11 +197,20 @@ function getReferrerFromStartParam(startParam) {
     return null;
   }
   
-  return startParam.substring(4);
+  // Формат: ref_userId_uniqueCode или ref_username_uniqueCode
+  const refParts = startParam.substring(4).split('_');
+  
+  // Если формат неверный, возвращаем null
+  if (refParts.length < 1) {
+    return null;
+  }
+  
+  // Возвращаем первую часть (userId или username)
+  return refParts[0];
 }
 
 // Обработчик команды /start
-bot.onText(/\/start(.*)/, (msg, match) => {
+bot.onText(/\/start(.*)/, async (msg, match) => {
   const chatId = msg.chat.id;
   const webAppUrl = `https://4008db5c-30f4-4c1f-9e72-9277a9789452-00-3dj86x3mdpb5x.sisko.replit.dev/`;
   
@@ -210,25 +219,39 @@ bot.onText(/\/start(.*)/, (msg, match) => {
   
   // Проверяем, является ли это реферальной ссылкой
   if (startParam) {
-    const referrerId = getReferrerFromStartParam(startParam);
+    const referrerUsername = getReferrerFromStartParam(startParam);
     
-    if (referrerId) {
-      // Добавляем пользователя как реферала
-      const referralId = msg.from.id.toString();
-      const referralUsername = msg.from.username || `user${referralId}`;
-      
-      // Проверяем, что реферер и реферал - разные пользователи
-      if (referrerId !== referralId) {
-        const added = addReferral(referrerId, referralId, referralUsername);
+    if (referrerUsername) {
+      try {
+        // Получаем информацию о пользователе по username
+        const referrerChat = await bot.getChat(`@${referrerUsername}`).catch(err => {
+          console.error(`Ошибка при получении информации о пользователе @${referrerUsername}:`, err);
+          return null;
+        });
         
-        if (added) {
-          // Отправляем сообщение о успешном добавлении реферала
-          bot.sendMessage(
-            referrerId,
-            `🎉 *Поздравляем!* У вас новый реферал: ${msg.from.username ? '@' + msg.from.username : 'Пользователь'}.\n\nКогда реферал купит звезды, вы получите скидку 5% за каждые 100 купленных им звезд.`,
-            { parse_mode: 'Markdown' }
-          );
+        if (referrerChat) {
+          const referrerId = referrerChat.id.toString();
+          const referralId = msg.from.id.toString();
+          const referralUsername = msg.from.username || `user${referralId}`;
+          
+          // Проверяем, что реферер и реферал - разные пользователи
+          if (referrerId !== referralId) {
+            const added = addReferral(referrerId, referralId, referralUsername);
+            
+            if (added) {
+              // Отправляем сообщение о успешном добавлении реферала
+              bot.sendMessage(
+                referrerId,
+                `🎉 *Поздравляем!* У вас новый реферал: ${msg.from.username ? '@' + msg.from.username : 'Пользователь'}.\n\nКогда реферал купит звезды, вы получите скидку 5% за каждые 100 купленных им звезд.`,
+                { parse_mode: 'Markdown' }
+              ).catch(err => {
+                console.error('Ошибка при отправке сообщения рефереру:', err);
+              });
+            }
+          }
         }
+      } catch (error) {
+        console.error('Ошибка при обработке реферальной ссылки:', error);
       }
     }
   }

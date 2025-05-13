@@ -203,7 +203,6 @@ mainNav.addEventListener('click', () => {
 // Функция для загрузки данных реферальной системы
 async function loadReferralData() {
     try {
-        localStorage.clear();
         // Показываем индикатор загрузки
         loader.classList.add('active');
         
@@ -212,6 +211,7 @@ async function loadReferralData() {
         
         if (savedReferralData) {
             try {
+                localStorage.clear();
                 // Пытаемся распарсить сохраненные данные
                 const parsedData = JSON.parse(savedReferralData);
                 
@@ -294,7 +294,7 @@ async function loadReferralData() {
 function generateTemporaryReferralData() {
     // Получаем данные текущего пользователя
     const currentUser = window.Telegram.WebApp.initDataUnsafe.user;
-    const username = currentUser && currentUser.username ? currentUser.username : 'user';
+    const userId = currentUser && currentUser.id ? currentUser.id.toString() : 'user';
     
     // Генерируем уникальный код для реферальной ссылки
     const uniqueCode = Math.random().toString(36).substring(2, 10);
@@ -303,7 +303,7 @@ function generateTemporaryReferralData() {
     const botUsername = 'pasha321bot'; // Используем корректный username бота
     // Создаем временные данные
     referralData = {
-        referralLink: `https://t.me/${botUsername}?start=ref_${username}_${uniqueCode}`,
+        referralLink: `https://t.me/${botUsername}?start=ref_${userId}_${uniqueCode}`,
         referrals: [],
         discounts: []
     };
