@@ -7,7 +7,8 @@
       "icon": "fas fa-rocket",
       "price": 150,
       "seller": "SpaceArtist",
-      "seller_id": "space_artist_tg"
+      "seller_id": "space_artist_tg",
+      "image": "https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?w=300&h=300&fit=crop&q=80"
     },
     {
       "id": "f2",
@@ -16,7 +17,8 @@
       "icon": "fas fa-star-half-alt",
       "price": 80,
       "seller": "ReactionMaster",
-      "seller_id": "reaction_master"
+      "seller_id": "reaction_master",
+      "image": "https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=300&h=300&fit=crop&q=80"
     },
     {
       "id": "f3",
@@ -25,7 +27,8 @@
       "icon": "fas fa-gamepad",
       "price": 120,
       "seller": "PixelArtPro",
-      "seller_id": "pixel_art_pro"
+      "seller_id": "pixel_art_pro",
+      "image": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&h=300&fit=crop&q=80"
     }
   ]
 }

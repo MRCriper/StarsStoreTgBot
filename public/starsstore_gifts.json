@@ -5,28 +5,32 @@
       "name": "Премиум стикеры 'Звёздное небо'",
       "description": "Официальный набор анимированных стикеров от StarsStore",
       "icon": "fas fa-moon",
-      "price": 140
+      "price": 140,
+      "image": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=300&h=300&fit=crop&q=80"
     },
     {
       "id": "s2",
       "name": "Анимированная реакция 'Stars'",
       "description": "Эксклюзивная анимированная реакция со звёздами",
       "icon": "fas fa-star-half-alt",
-      "price": 75
+      "price": 75,
+      "image": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=300&h=300&fit=crop&q=80"
     },
     {
       "id": "s3",
       "name": "Набор эмодзи 'Созвездия'",
       "description": "Уникальная коллекция эмодзи с созвездиями",
       "icon": "fas fa-magic",
-      "price": 110
+      "price": 110,
+      "image": "https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?w=300&h=300&fit=crop&q=80"
     },
     {
       "id": "s4",
       "name": "VIP-статус в StarsStore",
       "description": "Особый статус с доступом к эксклюзивным предложениям",
       "icon": "fas fa-crown",
-      "price": 500
+      "price": 500,
+      "image": "https://images.unsplash.com/photo-1531804055935-76f44d7c3621?w=300&h=300&fit=crop&q=80"
     }
   ]
 }

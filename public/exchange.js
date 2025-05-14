@@ -174,6 +174,17 @@ async function loadGifts(mode) {
     }
 }
 
+// Функция для получения URL изображения подарка
+function getGiftImageUrl(gift) {
+    // Используем изображение из JSON-файла, если оно есть
+    if (gift.image) {
+        return gift.image;
+    }
+    
+    // Запасной вариант, если изображение не указано
+    return `https://via.placeholder.com/300x300?text=${encodeURIComponent(gift.name)}`;
+}
+
 // Отрисовка подарков
 function renderGifts(gifts, mode) {
     const giftList = mode === 'fragment' ? fragmentGiftList : starsstoreGiftList;
@@ -181,10 +192,14 @@ function renderGifts(gifts, mode) {
     
     gifts.forEach(gift => {
         const giftElement = document.createElement('div');
-        giftElement.className = 'gift-item';
+        giftElement.className = 'gift-item animate__animated animate__fadeIn';
+        
+        // Получаем URL изображения для подарка
+        const imageUrl = getGiftImageUrl(gift);
+        
         giftElement.innerHTML = `
             <div class="gift-image">
-                <i class="${gift.icon}"></i>
+                <img src="${imageUrl}" alt="${gift.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'${gift.icon}\\'></i>';">
             </div>
             <div class="gift-info">
                 <h3>${gift.name}</h3>
