@@ -1,11 +1,6 @@
 // Инициализация Telegram Web App
 const tgApp = window.Telegram.WebApp;
 
-// Переменные для обработки свайпов
-let touchStartX = 0;
-let touchEndX = 0;
-const minSwipeDistance = 50; // Минимальное расстояние для определения свайпа
-
 // Адаптация к теме Telegram
 document.documentElement.style.setProperty('--tg-theme-bg-color', tgApp.backgroundColor || '#0a0a1a');
 document.documentElement.style.setProperty('--tg-theme-text-color', tgApp.textColor || '#ffffff');
@@ -533,7 +528,7 @@ toStep2Btn.addEventListener('click', () => {
 
 // Обработчик для кнопки "Назад" к шагу 1
 backToStep1Btn.addEventListener('click', () => {
-// Переключаем шаги с анимацией свайпа
+// Переключаем шаги с анимацией перехода
 step2.classList.remove('active');
 step2.classList.add('animate__animated', 'animate__fadeOutRight');
     
@@ -902,69 +897,6 @@ function getUserFromCache(username) {
 
 // Инициализация выпадающего списка контактов
 initContactsDropdown();
-
-// Добавляем обработчики событий для свайпов
-function initSwipeHandlers() {
-    // Получаем все страницы
-    const pages = [step1, step2, referralPage];
-    
-    // Добавляем обработчики для каждой страницы
-    pages.forEach(page => {
-        // Обработчик начала касания
-        page.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-        
-        // Обработчик окончания касания
-        page.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        }, { passive: true });
-    });
-}
-
-// Функция для обработки свайпа
-function handleSwipe() {
-    // Вычисляем расстояние свайпа
-    const swipeDistance = touchEndX - touchStartX;
-    
-    // Если расстояние меньше минимального, не считаем за свайп
-    if (Math.abs(swipeDistance) < minSwipeDistance) return;
-    
-    // Определяем направление свайпа
-    if (swipeDistance > 0) {
-        // Свайп вправо - переход на предыдущую страницу
-        handleRightSwipe();
-    } else {
-        // Свайп влево - переход на следующую страницу
-        handleLeftSwipe();
-    }
-}
-
-// Обработка свайпа влево
-function handleLeftSwipe() {
-    if (currentPage === 'step-1') {
-        // С главной страницы переходим на шаг 2
-        switchToPage('step-2');
-    } else if (currentPage === 'referral') {
-        // С реферальной страницы переходим на главную
-        switchToPage('step-1');
-    }
-}
-
-// Обработка свайпа вправо
-function handleRightSwipe() {
-    if (currentPage === 'step-2') {
-        // Со второго шага возвращаемся на главную
-        switchToPage('step-1');
-    } else if (currentPage === 'step-1') {
-        // С главной страницы переходим на реферальную
-        switchToPage('referral');
-    }
-}
-
-// Инициализируем обработчики свайпов
-initSwipeHandlers();
 
 // Обработчик для кнопки "Купить"
 buyButton.addEventListener('click', () => {
