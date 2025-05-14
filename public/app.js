@@ -57,19 +57,17 @@ const contactsDropdown = document.getElementById('contacts-dropdown');
 const referralPage = document.getElementById('referral-page');
 const referralNav = document.getElementById('referral-nav');
 const exchangeNav = document.getElementById('exchange-nav');
-const mainNav = document.getElementById('main-nav') || document.createElement('div'); // Используем существующий элемент или создаем новый
-if (!document.getElementById('main-nav')) {
-    mainNav.className = 'swipe-navigation right-nav';
-    mainNav.id = 'main-nav';
-    mainNav.innerHTML = `
-        <div class="nav-arrow">
-            <i class="fas fa-chevron-right"></i>
-        </div>
-        <div class="nav-label">Главная</div>
-    `;
-    // Добавляем в DOM только если элемента еще нет
-    document.body.appendChild(mainNav);
-}
+const mainNav = document.createElement('div');
+mainNav.className = 'swipe-navigation right-nav';
+mainNav.id = 'main-nav';
+mainNav.innerHTML = `
+    <div class="nav-arrow">
+        <i class="fas fa-home"></i>
+    </div>
+    <div class="nav-label">Главная</div>
+`;
+// Добавляем в DOM
+document.body.appendChild(mainNav);
 const referralLink = document.getElementById('referral-link');
 const shareButton = document.getElementById('share-button');
 const discountsContainer = document.getElementById('discounts-container');
@@ -95,33 +93,26 @@ function switchToPage(pageName) {
         step1.classList.add('active');
         currentPage = 'step-1';
         
-        // Показываем левую навигационную стрелку (к реферальной системе)
+        // На главной странице показываем кнопку рефералов слева и биржи справа
         referralNav.style.display = 'flex';
-        mainNav.style.display = 'none'; // Скрываем правую стрелку на главной странице
-        
-        // На главной странице показываем кнопку биржи справа
+        mainNav.style.display = 'none'; // Скрываем кнопку главной на главной странице
         exchangeNav.style.display = 'flex';
     } else if (pageName === 'step-2') {
         step2.classList.add('active');
         currentPage = 'step-2';
         
-        // Показываем левую навигационную стрелку (к реферальной системе)
+        // На странице шага 2 показываем кнопку рефералов слева и биржи справа
         referralNav.style.display = 'flex';
-        mainNav.style.display = 'none'; // Скрываем правую стрелку на странице шага 2
-        
-        // На странице шага 2 показываем кнопку биржи справа
+        mainNav.style.display = 'none'; // Скрываем кнопку главной на странице шага 2
         exchangeNav.style.display = 'flex';
     } else if (pageName === 'referral') {
         referralPage.classList.add('active');
         currentPage = 'referral';
         
-        // На странице рефералов показываем только правую стрелку с надписью "Главная"
+        // На странице рефералов показываем только кнопку главной справа
         referralNav.style.display = 'none';
         mainNav.style.display = 'flex';
-        mainNav.querySelector('.nav-label').textContent = 'Главная';
-        
-        // На странице рефералов скрываем кнопку биржи
-        exchangeNav.style.display = 'none';
+        exchangeNav.style.display = 'flex'; // Показываем кнопку биржи на странице рефералов
         
         // Загружаем данные реферальной системы
         loadReferralData();
@@ -197,16 +188,19 @@ function getPageElement(pageName) {
 
 // Обработчики для навигационных стрелок
 referralNav.addEventListener('click', () => {
+    // Переход на страницу рефералов с главной или шага 2
     if (currentPage === 'step-1' || currentPage === 'step-2') {
         switchToPage('referral');
     }
 });
 
 exchangeNav.addEventListener('click', () => {
+    // Переход на страницу биржи с любой страницы
     window.location.href = 'exchange.html';
 });
 
 mainNav.addEventListener('click', () => {
+    // Переход на главную страницу с страницы рефералов
     if (currentPage === 'referral') {
         switchToPage('step-1');
     }

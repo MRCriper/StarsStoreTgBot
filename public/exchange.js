@@ -58,9 +58,15 @@ const starsstoreGiftList = document.getElementById('starsstore-gift-list');
 const loader = document.getElementById('loader');
 const mainNav = document.getElementById('main-nav');
 
-// Добавляем обработчик для кнопки "Главная"
+// Обновляем стиль кнопки "Главная" для соответствия общему дизайну
 if (mainNav) {
-    console.log('Найдена кнопка "Главная", добавляем обработчик');
+    // Обновляем иконку и стиль
+    const navArrow = mainNav.querySelector('.nav-arrow i');
+    if (navArrow) {
+        navArrow.className = 'fas fa-home';
+    }
+    
+    // Добавляем обработчик для кнопки "Главная"
     mainNav.addEventListener('click', function() {
         console.log('Клик по кнопке "Главная"');
         window.location.href = 'index.html';
@@ -193,6 +199,8 @@ function renderGifts(gifts, mode) {
     gifts.forEach(gift => {
         const giftElement = document.createElement('div');
         giftElement.className = 'gift-item animate__animated animate__fadeIn';
+        giftElement.setAttribute('data-gift-id', gift.id);
+        giftElement.setAttribute('data-market', mode);
         
         // Получаем URL изображения для подарка
         const imageUrl = getGiftImageUrl(gift);
@@ -201,44 +209,147 @@ function renderGifts(gifts, mode) {
             <div class="gift-image">
                 <img src="${imageUrl}" alt="${gift.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'${gift.icon}\\'></i>';">
             </div>
-            <div class="gift-info">
+            <div class="gift-info-preview">
                 <h3>${gift.name}</h3>
-                <p>${gift.description}</p>
-                <div class="gift-price">
+                <div class="gift-price-preview">
                     <span><i class="fas fa-star"></i> ${gift.price}</span>
                 </div>
-                <div class="gift-market-info">
-                    <span class="market-label">${mode === 'fragment' ? 'Fragment Market' : 'StarsStore Market'}</span>
-                    ${mode === 'fragment' ? `<span class="seller-info">Продавец: ${gift.seller}</span>` : ''}
-                </div>
             </div>
-            <div class="gift-actions">
-                <button class="buy-gift-btn" data-gift-id="${gift.id}">
-                    <i class="fas fa-shopping-cart"></i> Купить
-                </button>
-                ${mode === 'fragment' ? `
-                <button class="contact-seller-btn" data-seller-id="${gift.seller_id}">
-                    <i class="fas fa-envelope"></i> Связаться
-                </button>` : ''}
-            </div>
+            <div class="gift-id">#${gift.id}</div>
         `;
 
-        // Добавляем обработчики для кнопок
-        const buyButton = giftElement.querySelector('.buy-gift-btn');
-        buyButton.addEventListener('click', () => buyGift(gift, mode));
-
-        if (mode === 'fragment') {
-            const contactButton = giftElement.querySelector('.contact-seller-btn');
-            contactButton.addEventListener('click', () => contactSeller(gift.seller_id));
-        }
+        // Добавляем обработчик клика на подарок для открытия модального окна
+        giftElement.addEventListener('click', () => openGiftModal(gift, mode));
 
         giftList.appendChild(giftElement);
     });
 }
 
+// Функция открытия модального окна с подарком
+function openGiftModal(gift, mode) {
+    // Создаем модальное окно, если его еще нет
+    let modalOverlay = document.querySelector('.gift-modal-overlay');
+    if (!modalOverlay) {
+        modalOverlay = document.createElement('div');
+        modalOverlay.className = 'gift-modal-overlay';
+        document.body.appendChild(modalOverlay);
+    }
+    
+    const marketName = mode === 'fragment' ? 'SS_store' : 'внутренняя биржа SS_store';
+    
+    // Заполняем содержимое модального окна
+    modalOverlay.innerHTML = `
+        <div class="gift-modal animate__animated animate__fadeIn">
+            <div class="gift-modal-header">
+                <h2>${gift.name}</h2>
+                <div class="gift-id">#${gift.id}</div>
+                <div class="gift-modal-share">
+                    <i class="fas fa-share-alt"></i>
+                </div>
+            </div>
+            <div class="gift-modal-image">
+                <img src="${getGiftImageUrl(gift)}" alt="${gift.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'${gift.icon}\\'></i>';">
+            </div>
+            <div class="gift-modal-content">
+                <div class="gift-modal-info">
+                    <div class="gift-modal-info-row">
+                        <div class="gift-modal-info-label">Цена:</div>
+                        <div class="gift-modal-info-value"><i class="fas fa-star" style="color: var(--star-color);"></i> ${gift.price}</div>
+                    </div>
+                    <div class="gift-modal-info-row">
+                        <div class="gift-modal-info-label">Маркет:</div>
+                        <div class="gift-modal-info-value">${marketName}</div>
+                    </div>
+                    ${mode === 'fragment' ? `
+                    <div class="gift-modal-info-row">
+                        <div class="gift-modal-info-label">Продавец:</div>
+                        <div class="gift-modal-info-value">${gift.seller}</div>
+                    </div>` : ''}
+                </div>
+                <div class="gift-modal-description">
+                    ${gift.description}
+                </div>
+                <div class="gift-modal-actions">
+                    <button class="gift-modal-btn gift-modal-buy-btn" data-gift-id="${gift.id}">
+                        <i class="fas fa-shopping-cart"></i> Купить
+                    </button>
+                    ${mode === 'fragment' ? `
+                    <button class="gift-modal-btn gift-modal-contact-btn" data-seller-id="${gift.seller_id}">
+                        <i class="fas fa-envelope"></i> Написать продавцу
+                    </button>` : ''}
+                    <button class="gift-modal-btn gift-modal-close-btn">
+                        <i class="fas fa-times"></i> Закрыть
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Показываем модальное окно
+    modalOverlay.classList.add('active');
+    
+    // Добавляем обработчики для кнопок
+    const buyButton = modalOverlay.querySelector('.gift-modal-buy-btn');
+    buyButton.addEventListener('click', () => buyGift(gift, mode));
+    
+    if (mode === 'fragment') {
+        const contactButton = modalOverlay.querySelector('.gift-modal-contact-btn');
+        contactButton.addEventListener('click', () => contactSeller(gift.seller_id));
+    }
+    
+    const closeButton = modalOverlay.querySelector('.gift-modal-close-btn');
+    closeButton.addEventListener('click', closeGiftModal);
+    
+    // Закрытие по клику на оверлей
+    modalOverlay.addEventListener('click', (event) => {
+        if (event.target === modalOverlay) {
+            closeGiftModal();
+        }
+    });
+    
+    // Добавляем обработчик для кнопки "Поделиться"
+    const shareButton = modalOverlay.querySelector('.gift-modal-share');
+    shareButton.addEventListener('click', () => shareGift(gift, mode));
+}
+
+// Функция закрытия модального окна
+function closeGiftModal() {
+    const modalOverlay = document.querySelector('.gift-modal-overlay');
+    if (modalOverlay) {
+        modalOverlay.classList.remove('active');
+        // Удаляем модальное окно после анимации
+        setTimeout(() => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        }, 300);
+    }
+}
+
+// Функция для поделиться подарком
+function shareGift(gift, mode) {
+    const marketName = mode === 'fragment' ? 'SS_store' : 'внутренняя биржа SS_store';
+    const shareText = `Посмотри этот подарок в Stars Store: ${gift.name} (${gift.price} звёзд) на ${marketName}`;
+    
+    // Используем Telegram Web App API для поделиться
+    if (tgApp.showShareButton) {
+        tgApp.showShareButton();
+        tgApp.onShareButtonClicked(() => {
+            tgApp.shareMessage(shareText);
+        });
+    } else {
+        // Если метод не поддерживается, показываем сообщение
+        tgApp.showPopup({
+            title: 'Поделиться',
+            message: 'Функция "Поделиться" не поддерживается в текущей версии Telegram',
+            buttons: [{type: 'ok'}]
+        });
+    }
+}
+
 // Функция покупки подарка
 function buyGift(gift, mode) {
-    const marketName = mode === 'fragment' ? 'Fragment Market' : 'StarsStore Market';
+    const marketName = mode === 'fragment' ? 'SS_store' : 'внутренняя биржа SS_store';
     tgApp.showConfirm(
         `Вы хотите купить ${gift.name} за ${gift.price} звёзд на ${marketName}?`,
         (confirmed) => {
@@ -259,6 +370,9 @@ function buyGift(gift, mode) {
                     message: `Подарок ${gift.name} успешно куплен на ${marketName}!`,
                     buttons: [{type: 'ok'}]
                 });
+                
+                // Закрываем модальное окно после покупки
+                closeGiftModal();
             }
         }
     );
@@ -273,6 +387,9 @@ function contactSeller(sellerId) {
         message: 'Сейчас вы будете перенаправлены в чат с продавцом',
         buttons: [{type: 'ok'}]
     });
+    
+    // Закрываем модальное окно после нажатия на кнопку
+    closeGiftModal();
 }
 
 // Загружаем подарки для начального режима (Fragment Market)

@@ -749,22 +749,22 @@ main {
 /* ===== СПИСОК ПОДАРКОВ ===== */
 .gift-list {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
 }
 
 .gift-item {
     background-color: rgba(20, 20, 50, 0.5);
     border-radius: var(--border-radius-sm);
-    padding: 20px;
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 16px;
+    aspect-ratio: 1/1;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     transition: all 0.3s ease;
     border: 1px solid rgba(157, 113, 234, 0.1);
     position: relative;
     overflow: hidden;
+    cursor: pointer;
 }
 
 .gift-item:hover {
@@ -785,16 +785,13 @@ main {
 }
 
 .gift-image {
-    width: 80px;
-    height: 80px;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(157, 113, 234, 0.2), rgba(79, 195, 247, 0.2));
-    border-radius: 16px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     z-index: 1;
 }
 
@@ -802,7 +799,6 @@ main {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 14px;
     transition: transform 0.3s ease;
 }
 
@@ -821,70 +817,177 @@ main {
     transform: scale(1.1) rotate(5deg);
 }
 
-.gift-info {
-    z-index: 1;
+.gift-info-preview {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 8px;
+    background: rgba(10, 10, 26, 0.7);
+    backdrop-filter: blur(5px);
+    text-align: center;
+    z-index: 2;
 }
 
-.gift-info h3 {
-    font-size: 18px;
-    margin-bottom: 8px;
-    color: var(--tg-theme-text-color);
-}
-
-.gift-info p {
+.gift-info-preview h3 {
     font-size: 14px;
-    color: var(--tg-theme-hint-color);
-    margin-bottom: 12px;
+    color: var(--tg-theme-text-color);
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
 }
 
-.gift-price {
+.gift-price-preview {
     display: inline-block;
-    padding: 6px 12px;
+    padding: 2px 6px;
     background: linear-gradient(135deg, rgba(157, 113, 234, 0.2), rgba(79, 195, 247, 0.2));
     border-radius: 20px;
     font-weight: 600;
-    margin-bottom: 10px;
 }
 
-.gift-price span {
+.gift-price-preview span {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     color: var(--star-color);
     text-shadow: 0 0 5px rgba(255, 235, 59, 0.5);
-}
-
-.gift-price i {
-    font-size: 14px;
-}
-
-.gift-market-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
     font-size: 12px;
 }
 
-.market-label {
-    color: var(--accent-color);
-    font-weight: 600;
+.gift-price-preview i {
+    font-size: 10px;
 }
 
-.seller-info {
+/* Добавляем идентификатор для отображения в верхнем правом углу */
+.gift-id {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(10, 10, 26, 0.7);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--tg-theme-hint-color);
+    z-index: 2;
+}
+
+/* Модальное окно для подарка */
+.gift-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(10, 10, 26, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    backdrop-filter: blur(5px);
+}
+
+.gift-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.gift-modal {
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--box-shadow);
+    border: 1px solid var(--card-border);
+    position: relative;
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.gift-modal-header {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(157, 113, 234, 0.2);
+    position: relative;
+}
+
+.gift-modal-header h2 {
+    font-size: 22px;
+    color: var(--primary-light);
+    margin-bottom: 5px;
+}
+
+.gift-modal-header .gift-id {
+    color: var(--tg-theme-hint-color);
+    font-size: 14px;
+}
+
+.gift-modal-image {
+    width: 100%;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(157, 113, 234, 0.2), rgba(79, 195, 247, 0.2));
+    overflow: hidden;
+}
+
+.gift-modal-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gift-modal-content {
+    padding: 20px;
+}
+
+.gift-modal-info {
+    margin-bottom: 20px;
+}
+
+.gift-modal-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.gift-modal-info-label {
     color: var(--tg-theme-hint-color);
 }
 
-.gift-actions {
+.gift-modal-info-value {
+    color: var(--tg-theme-text-color);
+    font-weight: 600;
+}
+
+.gift-modal-description {
+    margin-bottom: 20px;
+    color: var(--tg-theme-text-color);
+    line-height: 1.5;
+}
+
+.gift-modal-actions {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    z-index: 1;
 }
 
-.buy-gift-btn, .contact-seller-btn {
-    padding: 10px 16px;
+.gift-modal-btn {
+    padding: 14px;
     border-radius: var(--border-radius-sm);
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -894,27 +997,56 @@ main {
     gap: 8px;
 }
 
-.buy-gift-btn {
+.gift-modal-buy-btn {
     background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
     color: white;
     border: none;
     box-shadow: 0 4px 10px rgba(157, 113, 234, 0.3);
 }
 
-.buy-gift-btn:hover {
+.gift-modal-buy-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(157, 113, 234, 0.5);
 }
 
-.contact-seller-btn {
+.gift-modal-contact-btn {
     background-color: transparent;
     color: var(--tg-theme-text-color);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.contact-seller-btn:hover {
+.gift-modal-contact-btn:hover {
     background-color: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.3);
+}
+
+.gift-modal-close-btn {
+    background-color: rgba(157, 113, 234, 0.15);
+    color: var(--tg-theme-text-color);
+    border: none;
+}
+
+.gift-modal-close-btn:hover {
+    background-color: rgba(157, 113, 234, 0.25);
+}
+
+.gift-modal-share {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(157, 113, 234, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.gift-modal-share:hover {
+    background-color: rgba(157, 113, 234, 0.25);
 }
 
 /* ===== ORDER SUMMARY ===== */
