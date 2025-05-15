@@ -107,7 +107,7 @@ function switchToPage(pageName) {
         // На странице рефералов показываем кнопку главной слева и биржи справа
         referralNav.style.display = 'none';
         mainNav.style.display = 'flex';
-        mainNav.className = 'swipe-navigation left-nav';
+        mainNav.className = 'swipe-navigation right-nav';
         exchangeNav.style.display = 'flex';
         
         // Загружаем данные реферальной системы
