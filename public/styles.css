@@ -389,7 +389,7 @@ main {
     margin-bottom: 0;
 }
 
-.discount-info, .referral-info {
+.discount-info, .referral-info, .referral-user-info {
     display: flex;
     flex-direction: column;
 }

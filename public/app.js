@@ -386,7 +386,7 @@ function updateReferralsList() {
         const referralItem = document.createElement('div');
         referralItem.className = 'referral-item';
         referralItem.innerHTML = `
-            <div class="referral-info">
+            <div class="referral-user-info">
                 <div class="referral-username">@${referral.username}</div>
                 <div class="discount-date">Присоединился: ${formattedDate}</div>
             </div>
