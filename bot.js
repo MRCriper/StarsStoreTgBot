@@ -129,8 +129,8 @@ function updateReferralStars(referrerId, referralId, stars) {
     saveReferralsData(referralsData);
     
     // Проверяем, нужно ли начислить новые скидки
-    const previousDiscounts = Math.floor(previousStars / 100);
-    const currentDiscounts = Math.floor(referrerData.referrals[referralIndex].totalStarsPurchased / 100);
+    const previousDiscounts = Math.floor(previousStars / 1000);
+    const currentDiscounts = Math.floor(referrerData.referrals[referralIndex].totalStarsPurchased / 1000);
     
     if (currentDiscounts > previousDiscounts) {
       // Начисляем новые скидки
@@ -173,7 +173,7 @@ function addDiscounts(userId, count) {
     for (let i = 0; i < count; i++) {
       userDiscounts.discounts.push({
         percent: 5,
-        reason: i === 0 ? 'Рефералы купили 100 звёзд' : 'Рефералы купили ещё 100 звёзд',
+        reason: i === 0 ? 'Рефералы купили 1000 звёзд' : 'Рефералы купили ещё 1000 звёзд',
         createdAt: new Date().toISOString()
       });
     }
@@ -246,7 +246,7 @@ bot.onText(/\/start(.*)/, async (msg, match) => {
               // Отправляем сообщение о успешном добавлении реферала
               bot.sendMessage(
                 referrerId,
-                `🎉 *Поздравляем!* У вас новый реферал: ${msg.from.username ? '@' + msg.from.username : 'Пользователь'}.\n\nКогда реферал купит звезды, вы получите скидку 5% за каждые 100 купленных им звезд.`,
+                `🎉 *Поздравляем!* У вас новый реферал: ${msg.from.username ? '@' + msg.from.username : 'Пользователь'}.\n\nКогда реферал купит звезды, вы получите скидку 5% за каждые 1000 купленных им звезд.`,
                 { parse_mode: 'Markdown' }
               ).catch(err => {
                 console.error('Ошибка при отправке сообщения рефереру:', err);
@@ -395,18 +395,18 @@ bot.on('web_app_data', async (msg) => {
   setTimeout(() => {
     const referralLink = `https://t.me/pasha321bot?start=ref_${userId}`;
     
-    bot.sendMessage(
-      chatId,
-      `🌟 *Приглашайте друзей и получайте скидки!*\n\nЗа каждые 100 звезд, купленных вашими рефералами, вы получаете скидку 5% на следующую покупку.\n\nВаша реферальная ссылка:\n\`${referralLink}\``,
-      { 
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '🔗 Поделиться ссылкой', url: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Stars Store и получай звезды для своего Telegram аккаунта!')}` }]
-          ]
-        }
+  bot.sendMessage(
+    chatId,
+    `🌟 *Приглашайте друзей и получайте скидки!*\n\nЗа каждые 1000 звезд, купленных вашими рефералами, вы получаете скидку 5% на следующую покупку.\n\nВаша реферальная ссылка:\n\`${referralLink}\``,
+    { 
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔗 Поделиться ссылкой', url: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Stars Store и получай звезды для своего Telegram аккаунта!')}` }]
+        ]
       }
-    );
+    }
+  );
   }, 2000);
 });
 

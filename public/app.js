@@ -88,7 +88,7 @@ function switchToPage(pageName) {
         step1.classList.add('active');
         currentPage = 'step-1';
         
-        // На главной странице показываем кнопку рефералов слева и биржи справа
+        // На главной странице показываем только кнопку рефералов слева и биржи справа
         referralNav.style.display = 'flex';
         mainNav.style.display = 'none'; // Скрываем кнопку главной на главной странице
         exchangeNav.style.display = 'flex';

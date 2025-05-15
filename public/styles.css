@@ -1622,8 +1622,6 @@ footer::before {
 /* ===== НАВИГАЦИОННЫЕ СТРЕЛКИ ДЛЯ СВАЙПА ===== */
 .swipe-navigation {
     position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
     width: var(--swipe-nav-width);
     height: 120px;
     display: flex;
@@ -1643,27 +1641,41 @@ footer::before {
 
 .swipe-navigation:hover {
     opacity: 1;
-    transform: translateY(-50%) scale(1.05);
+    transform: scale(1.05);
 }
 
 .left-nav {
     left: 0;
+    top: 40%;
+    transform: translateY(-50%);
     border-radius: 0 var(--border-radius) var(--border-radius) 0;
     border-left: none;
+    background-color: rgba(20, 20, 50, 0.7);
 }
 
 .right-nav {
     right: 0;
+    top: 60%;
+    transform: translateY(-50%);
     border-radius: var(--border-radius) 0 0 var(--border-radius);
     border-right: none;
+    background-color: rgba(79, 195, 247, 0.3);
 }
 
 .nav-arrow {
     font-size: 24px;
-    color: var(--primary-light);
     margin-bottom: 10px;
-    filter: drop-shadow(0 0 5px rgba(157, 113, 234, 0.5));
     animation: pulse-arrow 2s infinite;
+}
+
+.left-nav .nav-arrow {
+    color: var(--primary-light);
+    filter: drop-shadow(0 0 5px rgba(157, 113, 234, 0.5));
+}
+
+.right-nav .nav-arrow {
+    color: var(--accent-color);
+    filter: drop-shadow(0 0 5px rgba(79, 195, 247, 0.5));
 }
 
 @keyframes pulse-arrow {
@@ -1683,10 +1695,12 @@ footer::before {
 
 .left-nav .nav-label {
     transform: rotate(180deg);
+    color: var(--primary-light);
 }
 
 .right-nav .nav-label {
     transform: rotate(180deg);
+    color: var(--accent-color);
 }
 
 /* ===== КРОСС-ПЛАТФОРМЕННАЯ ПОДДЕРЖКА ===== */

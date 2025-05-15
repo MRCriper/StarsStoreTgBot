@@ -58,8 +58,8 @@ function saveDiscountsData(data) {
 
 // Функция для расчета скидок на основе купленных звезд
 function calculateDiscounts(totalStars) {
-  // За каждые 100 звезд начисляется скидка 5%
-  return Math.floor(totalStars / 100);
+  // За каждые 1000 звезд начисляется скидка 5%
+  return Math.floor(totalStars / 1000);
 }
 
 // Функция для генерации реферальной ссылки
