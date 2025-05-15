@@ -53,7 +53,7 @@ const referralPage = document.getElementById('referral-page');
 const referralNav = document.getElementById('referral-nav');
 const exchangeNav = document.getElementById('exchange-nav');
 const mainNav = document.createElement('div');
-mainNav.className = 'swipe-navigation right-nav';
+mainNav.className = 'swipe-navigation left-nav';
 mainNav.id = 'main-nav';
 mainNav.innerHTML = `
     <div class="nav-arrow">
@@ -104,10 +104,11 @@ function switchToPage(pageName) {
         referralPage.classList.add('active');
         currentPage = 'referral';
         
-        // На странице рефералов показываем только кнопку главной справа
+        // На странице рефералов показываем кнопку главной слева и биржи справа
         referralNav.style.display = 'none';
         mainNav.style.display = 'flex';
-        exchangeNav.style.display = 'flex'; // Показываем кнопку биржи на странице рефералов
+        mainNav.className = 'swipe-navigation left-nav';
+        exchangeNav.style.display = 'flex';
         
         // Загружаем данные реферальной системы
         loadReferralData();
