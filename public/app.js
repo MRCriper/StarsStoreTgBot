@@ -53,7 +53,7 @@ const referralPage = document.getElementById('referral-page');
 const referralNav = document.getElementById('referral-nav');
 const exchangeNav = document.getElementById('exchange-nav');
 const mainNav = document.createElement('div');
-mainNav.className = 'swipe-navigation left-nav';
+mainNav.className = 'swipe-navigation right-nav';
 mainNav.id = 'main-nav';
 mainNav.innerHTML = `
     <div class="nav-arrow">
@@ -63,6 +63,7 @@ mainNav.innerHTML = `
 `;
 // Добавляем в DOM
 document.body.appendChild(mainNav);
+mainNav.style.display = 'none'; // Скрываем кнопку главной по умолчанию
 const referralLink = document.getElementById('referral-link');
 const shareButton = document.getElementById('share-button');
 const discountsContainer = document.getElementById('discounts-container');
