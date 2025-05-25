@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "backend": "node start_backend.js",
+    "start:all": "concurrently \"npm run backend\" \"npm run start\""
   },
   "keywords": [],
   "author": "",
@@ -21,6 +23,7 @@
     "puppeteer": "^22.4.0"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "nodemon": "^3.1.10"
   }
 }

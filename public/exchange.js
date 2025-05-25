@@ -1,6 +1,9 @@
 // Инициализация Telegram Web App
 const tgApp = window.Telegram.WebApp;
 
+// Импортируем клиент для работы с Python-бэкендом
+const fragmentClientPy = require('./fragment-client-py');
+
 // Адаптация к теме Telegram
 document.documentElement.style.setProperty('--tg-theme-bg-color', tgApp.backgroundColor || '#0a0a1a');
 document.documentElement.style.setProperty('--tg-theme-text-color', tgApp.textColor || '#ffffff');
@@ -56,12 +59,13 @@ const starsstoreSection = document.getElementById('starsstore-section');
 const fragmentGiftList = document.getElementById('fragment-gift-list');
 const starsstoreGiftList = document.getElementById('starsstore-gift-list');
 const loader = document.getElementById('loader');
+const mainNav = document.getElementById('main-nav');
+
 // Глобальные переменные для работы с коллекциями и фильтрации
 let currentMode = 'starsstore'; // По умолчанию показываем StarsStore Market
 let selectedGift = null; // Выбранный подарок
 let collections = []; // Список коллекций для фильтрации
 let currentCollection = null; // Текущая выбранная коллекция
-const mainNav = document.getElementById('main-nav');
 
 // Обновляем стиль кнопки "Главная" для соответствия общему дизайну
 if (mainNav) {
@@ -112,23 +116,20 @@ async function loadGifts(mode, collection = null) {
         // В зависимости от режима, загружаем подарки из разных источников
         if (mode === 'fragment') {
             try {
-                // Используем fragmentClient для получения подарков Fragment
-                gifts = await fragmentClient.getFragmentGifts();
-                console.log(`Получено ${gifts.length} подарков Fragment через API`);
+                // Используем fragmentClientPy для получения подарков Fragment
+                gifts = await fragmentClientPy.getFragmentGifts(currentCollection, 'available');
+                console.log(`Получено ${gifts.length} подарков Fragment через Python-бэкенд`);
                 
-                // Извлекаем список коллекций из подарков
-                collections = extractCollections(gifts);
-                
-                // Если указана коллекция, фильтруем подарки
-                if (collection) {
-                    console.log(`Фильтрация по коллекции: ${collection}`);
-                    gifts = gifts.filter(gift => gift.collection === collection);
-                    console.log(`После фильтрации осталось ${gifts.length} подарков`);
+                // Получаем список коллекций для фильтрации
+                try {
+                    const collectionsData = await fragmentClientPy.getFragmentCollections();
+                    console.log(`Получено ${collectionsData.length} коллекций Fragment`);
+                    collections = collectionsData.map(col => col.name);
+                } catch (collectionsError) {
+                    console.error('Ошибка при получении коллекций Fragment:', collectionsError);
+                    // Извлекаем список коллекций из подарков
+                    collections = extractCollections(gifts);
                 }
-                
-                // Фильтруем только подарки на продаже или аукционе
-                gifts = gifts.filter(gift => gift.status === 'for_sale' || gift.status === 'on_auction');
-                console.log(`После фильтрации по статусу осталось ${gifts.length} подарков`);
                 
                 // Если подарков нет, показываем уведомление
                 if (gifts.length === 0) {
@@ -138,19 +139,19 @@ async function loadGifts(mode, collection = null) {
                         buttons: [{type: 'ok'}]
                     });
                     
-                    // Запускаем парсинг данных Fragment
+                    // Запускаем обновление данных Fragment
                     try {
-                        await fragmentClient.startFragmentParsing();
-                        console.log('Запущен парсинг данных Fragment');
-                    } catch (parsingError) {
-                        console.error('Ошибка при запуске парсинга Fragment:', parsingError);
+                        await fragmentClientPy.startFragmentUpdate();
+                        console.log('Запущено обновление данных Fragment');
+                    } catch (updateError) {
+                        console.error('Ошибка при запуске обновления данных Fragment:', updateError);
                     }
                 }
                 
                 // Создаем фильтр коллекций
                 createCollectionFilter(collections);
             } catch (apiError) {
-                console.error('Ошибка при загрузке подарков Fragment через API:', apiError);
+                console.error('Ошибка при загрузке подарков Fragment через Python-бэкенд:', apiError);
                 
                 // Показываем уведомление об ошибке
                 tgApp.showPopup({
@@ -172,6 +173,57 @@ async function loadGifts(mode, collection = null) {
                     // Если указана коллекция, фильтруем подарки
                     if (collection) {
                         gifts = gifts.filter(gift => gift.collection === collection);
+                    }
+                    
+                    // Фильтруем только подарки на продаже или аукционе
+                    gifts = gifts.filter(gift => gift.status === 'for_sale' || gift.status === 'on_auction');
+                    
+                    // Создаем фильтр коллекций
+                    createCollectionFilter(collections);
+                    
+                    // Запускаем обновление данных Fragment в фоне
+                    fragmentClientPy.startFragmentUpdate()
+                        .then(() => console.log('Фоновое обновление данных Fragment запущено'))
+                        .catch(err => console.error('Ошибка при запуске фонового обновления данных Fragment:', err));
+                } catch (fallbackError) {
+                    console.error('Ошибка при загрузке из локального JSON файла:', fallbackError);
+                    gifts = [];
+                    collections = [];
+                }
+            }
+        } else {
+            // Для StarsStore Market используем JSON файл
+            console.log('Загружаем подарки StarsStore из файла:', `${mode}_gifts.json`);
+            try {
+                const response = await fetch(`${mode}_gifts.json`);
+                console.log('Ответ получен:', response);
+                const data = await response.json();
+                console.log('Данные StarsStore:', data);
+                gifts = data.gifts;
+                console.log('Подарки StarsStore:', gifts);
+                
+                // Скрываем фильтр коллекций для StarsStore
+                hideCollectionFilter();
+            } catch (error) {
+                console.error('Ошибка при загрузке подарков StarsStore:', error);
+                gifts = [];
+            }
+        }
+        
+        console.log(`Отрисовываем ${gifts.length} подарков для режима ${mode}`);
+        renderGifts(gifts, mode);
+    } catch (error) {
+        console.error(`Ошибка при загрузке подарков ${mode}:`, error);
+        tgApp.showPopup({
+            title: 'Ошибка',
+            message: 'Не удалось загрузить список подарков',
+            buttons: [{type: 'ok'}]
+        });
+    } finally {
+        loader.style.display = 'none';
+    }
+}
+
 // Извлечение списка коллекций из подарков
 function extractCollections(gifts) {
     const collectionsSet = new Set();
@@ -247,51 +299,6 @@ function hideCollectionFilter() {
         filterContainer.style.display = 'none';
     }
 }
-                    }
-                    
-                    // Фильтруем только подарки на продаже или аукционе
-                    gifts = gifts.filter(gift => gift.status === 'for_sale' || gift.status === 'on_auction');
-                    
-                    // Создаем фильтр коллекций
-                    createCollectionFilter(collections);
-                } catch (fallbackError) {
-                    console.error('Ошибка при загрузке из локального JSON файла:', fallbackError);
-                    gifts = [];
-                    collections = [];
-                }
-            }
-        } else {
-            // Для StarsStore Market используем JSON файл
-            console.log('Загружаем подарки StarsStore из файла:', `${mode}_gifts.json`);
-            try {
-                const response = await fetch(`${mode}_gifts.json`);
-                console.log('Ответ получен:', response);
-                const data = await response.json();
-                console.log('Данные StarsStore:', data);
-                gifts = data.gifts;
-                console.log('Подарки StarsStore:', gifts);
-                
-                // Скрываем фильтр коллекций для StarsStore
-                hideCollectionFilter();
-            } catch (error) {
-                console.error('Ошибка при загрузке подарков StarsStore:', error);
-                gifts = [];
-            }
-        }
-        
-        console.log(`Отрисовываем ${gifts.length} подарков для режима ${mode}`);
-        renderGifts(gifts, mode);
-    } catch (error) {
-        console.error(`Ошибка при загрузке подарков ${mode}:`, error);
-        tgApp.showPopup({
-            title: 'Ошибка',
-            message: 'Не удалось загрузить список подарков',
-            buttons: [{type: 'ok'}]
-        });
-    } finally {
-        loader.style.display = 'none';
-    }
-}
 
 // Функция для получения URL изображения подарка
 function getGiftImageUrl(gift) {
@@ -354,16 +361,8 @@ function renderGifts(gifts, mode) {
             showGiftDetails(gift, mode);
         });
         
-        // Получаем URL изображения для подарка
-        const imageUrl = getGiftImageUrl(gift);
-        
         // Формируем HTML в зависимости от режима
         if (mode === 'fragment') {
-            // Для Fragment используем данные из парсера
-            const modelRarity = gift.model && gift.model.rarity ? gift.model.rarity : '';
-            const backgroundRarity = gift.background && gift.background.rarity ? gift.background.rarity : '';
-            const symbolRarity = gift.symbol && gift.symbol.rarity ? gift.symbol.rarity : '';
-            
             // Добавляем класс для статуса (продажа или аукцион)
             if (gift.status === 'for_sale') {
                 giftElement.classList.add('for-sale');
@@ -376,11 +375,11 @@ function renderGifts(gifts, mode) {
             
             giftElement.innerHTML = `
                 <div class="gift-image ${hasAnimation ? 'has-animation' : ''}">
-                    <img src="${imageUrl}" alt="${gift.name}" class="static-image" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'fas fa-gem\\'></i>';">
+                    <img src="${getGiftImageUrl(gift)}" alt="${gift.name}" class="static-image" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'fas fa-gem\\'></i>';">
                     ${hasAnimation ? `
                         <div class="animated-image">
-                            ${gift.animatedImage.endsWith('.gif')
-                                ? `<img src="${gift.animatedImage}" alt="${gift.name} (animated)" class="gif-animation">`
+                            ${gift.animatedImage.endsWith('.gif') 
+                                ? `<img src="${gift.animatedImage}" alt="${gift.name} (animated)" class="gif-animation">` 
                                 : `<video autoplay loop muted playsinline class="video-animation">
                                     <source src="${gift.animatedImage}" type="video/mp4">
                                   </video>`
@@ -411,266 +410,177 @@ function renderGifts(gifts, mode) {
                 <div class="gift-id">#${gift.id}</div>
             `;
         } else {
-            // Для StarsStore используем стандартный формат
+            // Для StarsStore используем другой формат
             giftElement.innerHTML = `
                 <div class="gift-image">
-                    <img src="${imageUrl}" alt="${gift.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'${gift.icon || 'fas fa-gift'}\\'></i>';">
+                    <img src="${getGiftImageUrl(gift)}" alt="${gift.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'fas fa-star\\'></i>';">
                 </div>
                 <div class="gift-info-preview">
                     <h3>${gift.name}</h3>
-                    <div class="gift-price-preview">
-                        <span><i class="fas fa-star"></i> ${gift.price}</span>
+                    <div class="gift-details-preview">
+                        <span class="gift-price">${gift.price} ⭐</span>
                     </div>
                 </div>
                 <div class="gift-id">#${gift.id}</div>
             `;
         }
-
-        // Добавляем обработчик клика на подарок для открытия модального окна
-        giftElement.addEventListener('click', () => openGiftModal(gift, mode));
-
+        
         giftList.appendChild(giftElement);
     });
 }
 
-// Функция открытия модального окна с подарком
-function openGiftModal(gift, mode) {
-    // Создаем модальное окно, если его еще нет
-    let modalOverlay = document.querySelector('.gift-modal-overlay');
-    if (!modalOverlay) {
-        modalOverlay = document.createElement('div');
-        modalOverlay.className = 'gift-modal-overlay';
-        document.body.appendChild(modalOverlay);
-    }
+// Показ деталей подарка
+function showGiftDetails(gift, mode) {
+    console.log(`Показ деталей подарка ${gift.id} из ${mode}`);
+    selectedGift = gift;
     
-    const marketName = mode === 'fragment' ? 'SS_store' : 'внутренняя биржа SS_store';
+    // Создаем модальное окно
+    const modal = document.createElement('div');
+    modal.className = 'gift-details-modal';
     
-    // Формируем содержимое модального окна в зависимости от режима
+    // Формируем содержимое модального окна
     let modalContent = '';
     
     if (mode === 'fragment') {
-        // Для Fragment используем данные из парсера
-        const modelName = gift.model && gift.model.name ? gift.model.name : 'Неизвестно';
-        const modelRarity = gift.model && gift.model.rarity ? gift.model.rarity : '';
-        
-        const backgroundName = gift.background && gift.background.name ? gift.background.name : 'Неизвестно';
-        const backgroundRarity = gift.background && gift.background.rarity ? gift.background.rarity : '';
-        
-        const symbolName = gift.symbol && gift.symbol.name ? gift.symbol.name : 'Неизвестно';
-        const symbolRarity = gift.symbol && gift.symbol.rarity ? gift.symbol.rarity : '';
+        // Определяем, есть ли анимированное изображение
+        const hasAnimation = gift.animatedImage && gift.animatedImage.length > 0;
         
         modalContent = `
-        <div class="gift-modal animate__animated animate__fadeIn">
-            <div class="gift-modal-header">
-                <h2>${gift.name}</h2>
-                <div class="gift-id">#${gift.id}</div>
-                <div class="gift-modal-share">
-                    <i class="fas fa-share-alt"></i>
+            <div class="gift-details-content">
+                <div class="gift-details-close">
+                    <i class="fas fa-times"></i>
+                </div>
+                <div class="gift-details-image ${hasAnimation ? 'has-animation' : ''}">
+                    <img src="${getGiftImageUrl(gift)}" alt="${gift.name}" class="static-image">
+                    ${hasAnimation ? `
+                        <div class="animated-image show-animation">
+                            ${gift.animatedImage.endsWith('.gif') 
+                                ? `<img src="${gift.animatedImage}" alt="${gift.name} (animated)" class="gif-animation">` 
+                                : `<video autoplay loop muted playsinline class="video-animation">
+                                    <source src="${gift.animatedImage}" type="video/mp4">
+                                  </video>`
+                            }
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="gift-details-info">
+                    <h2>${gift.name} #${gift.id}</h2>
+                    <p><strong>Владелец:</strong> @${gift.owner || 'unknown'}</p>
+                    <p><strong>Коллекция:</strong> ${gift.collection || 'Неизвестно'}</p>
+                    <p><strong>Статус:</strong> ${gift.status === 'for_sale' ? 'На продаже' : (gift.status === 'on_auction' ? 'На аукционе' : 'Не продается')}</p>
+                    ${gift.price && gift.price.amount ? `<p><strong>Цена:</strong> ${gift.price.amount} ${gift.price.currency || 'TON'}</p>` : ''}
+                    <p><strong>Саплай:</strong> ${gift.supply || 'Неизвестно'}</p>
+                </div>
+                <div class="gift-details-rarity">
+                    <div class="rarity-item">
+                        <div class="rarity-item-title">Модель</div>
+                        <div class="rarity-item-value">
+                            ${gift.model ? gift.model.name : 'Неизвестно'}
+                            ${gift.model && gift.model.rarity ? `<span class="rarity-percentage">${gift.model.rarity}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="rarity-item">
+                        <div class="rarity-item-title">Фон</div>
+                        <div class="rarity-item-value">
+                            ${gift.background ? gift.background.name : 'Неизвестно'}
+                            ${gift.background && gift.background.rarity ? `<span class="rarity-percentage">${gift.background.rarity}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="rarity-item">
+                        <div class="rarity-item-title">Символ</div>
+                        <div class="rarity-item-value">
+                            ${gift.symbol ? gift.symbol.name : 'Неизвестно'}
+                            ${gift.symbol && gift.symbol.rarity ? `<span class="rarity-percentage">${gift.symbol.rarity}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="gift-details-actions">
+                    <button class="gift-details-button primary" onclick="window.open('${gift.url}', '_blank')">
+                        <i class="fas fa-external-link-alt"></i> Открыть на Fragment
+                    </button>
                 </div>
             </div>
-            <div class="gift-modal-image">
-                <img src="${getGiftImageUrl(gift)}" alt="${gift.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'fas fa-gem\\'></i>';">
-            </div>
-            <div class="gift-modal-content">
-                <div class="gift-modal-info">
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Владелец:</div>
-                        <div class="gift-modal-info-value">@${gift.owner || 'unknown'}</div>
-                    </div>
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Модель:</div>
-                        <div class="gift-modal-info-value">${modelName} <span class="rarity-badge">${modelRarity}</span></div>
-                    </div>
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Фон:</div>
-                        <div class="gift-modal-info-value">${backgroundName} <span class="rarity-badge">${backgroundRarity}</span></div>
-                    </div>
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Символ:</div>
-                        <div class="gift-modal-info-value">${symbolName} <span class="rarity-badge">${symbolRarity}</span></div>
-                    </div>
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Саплай:</div>
-                        <div class="gift-modal-info-value">${gift.supply || 'Неизвестно'}</div>
-                    </div>
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Маркет:</div>
-                        <div class="gift-modal-info-value">${marketName}</div>
-                    </div>
-                </div>
-                <div class="gift-modal-actions">
-                    <button class="gift-modal-btn gift-modal-buy-btn" data-gift-id="${gift.id}">
-                        <i class="fas fa-shopping-cart"></i> Купить
-                    </button>
-                    <button class="gift-modal-btn gift-modal-contact-btn" data-owner="${gift.owner}">
-                        <i class="fas fa-envelope"></i> Написать владельцу
-                    </button>
-                    <button class="gift-modal-btn gift-modal-close-btn">
-                        <i class="fas fa-times"></i> Закрыть
-                    </button>
-                </div>
-            </div>
-        </div>
         `;
     } else {
-        // Для StarsStore используем стандартный формат
+        // Для StarsStore используем другой формат
         modalContent = `
-        <div class="gift-modal animate__animated animate__fadeIn">
-            <div class="gift-modal-header">
-                <h2>${gift.name}</h2>
-                <div class="gift-id">#${gift.id}</div>
-                <div class="gift-modal-share">
-                    <i class="fas fa-share-alt"></i>
+            <div class="gift-details-content">
+                <div class="gift-details-close">
+                    <i class="fas fa-times"></i>
                 </div>
-            </div>
-            <div class="gift-modal-image">
-                <img src="${getGiftImageUrl(gift)}" alt="${gift.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'${gift.icon || 'fas fa-gift'}\\'></i>';">
-            </div>
-            <div class="gift-modal-content">
-                <div class="gift-modal-info">
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Цена:</div>
-                        <div class="gift-modal-info-value"><i class="fas fa-star" style="color: var(--star-color);"></i> ${gift.price}</div>
-                    </div>
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Маркет:</div>
-                        <div class="gift-modal-info-value">${marketName}</div>
-                    </div>
-                    ${gift.seller ? `
-                    <div class="gift-modal-info-row">
-                        <div class="gift-modal-info-label">Продавец:</div>
-                        <div class="gift-modal-info-value">${gift.seller}</div>
-                    </div>` : ''}
+                <div class="gift-details-image">
+                    <img src="${getGiftImageUrl(gift)}" alt="${gift.name}">
                 </div>
-                <div class="gift-modal-description">
-                    ${gift.description || ''}
+                <div class="gift-details-info">
+                    <h2>${gift.name} #${gift.id}</h2>
+                    <p><strong>Цена:</strong> ${gift.price} ⭐</p>
+                    <p><strong>Описание:</strong> ${gift.description || 'Нет описания'}</p>
                 </div>
-                <div class="gift-modal-actions">
-                    <button class="gift-modal-btn gift-modal-buy-btn" data-gift-id="${gift.id}">
-                        <i class="fas fa-shopping-cart"></i> Купить
-                    </button>
-                    ${gift.seller_id ? `
-                    <button class="gift-modal-btn gift-modal-contact-btn" data-seller-id="${gift.seller_id}">
-                        <i class="fas fa-envelope"></i> Написать продавцу
-                    </button>` : ''}
-                    <button class="gift-modal-btn gift-modal-close-btn">
-                        <i class="fas fa-times"></i> Закрыть
+                <div class="gift-details-actions">
+                    <button class="gift-details-button primary" onclick="buyGift('${gift.id}', '${mode}')">
+                        <i class="fas fa-shopping-cart"></i> Купить за ${gift.price} ⭐
                     </button>
                 </div>
             </div>
-        </div>
         `;
     }
     
-    // Заполняем содержимое модального окна
-    modalOverlay.innerHTML = modalContent;
+    modal.innerHTML = modalContent;
+    document.body.appendChild(modal);
     
-    // Показываем модальное окно
-    modalOverlay.classList.add('active');
-    
-    // Добавляем обработчики для кнопок
-    const buyButton = modalOverlay.querySelector('.gift-modal-buy-btn');
-    buyButton.addEventListener('click', () => buyGift(gift, mode));
-    
-    if (mode === 'fragment') {
-        const contactButton = modalOverlay.querySelector('.gift-modal-contact-btn');
-        contactButton.addEventListener('click', () => contactSeller(gift.seller_id));
-    }
-    
-    const closeButton = modalOverlay.querySelector('.gift-modal-close-btn');
-    closeButton.addEventListener('click', closeGiftModal);
-    
-    // Закрытие по клику на оверлей
-    modalOverlay.addEventListener('click', (event) => {
-        if (event.target === modalOverlay) {
-            closeGiftModal();
-        }
+    // Добавляем обработчик для закрытия модального окна
+    const closeButton = modal.querySelector('.gift-details-close');
+    closeButton.addEventListener('click', () => {
+        modal.remove();
     });
     
-    // Добавляем обработчик для кнопки "Поделиться"
-    const shareButton = modalOverlay.querySelector('.gift-modal-share');
-    shareButton.addEventListener('click', () => shareGift(gift, mode));
+    // Показываем модальное окно
+    setTimeout(() => {
+        modal.classList.add('active');
+    }, 10);
 }
 
-// Функция закрытия модального окна
-function closeGiftModal() {
-    const modalOverlay = document.querySelector('.gift-modal-overlay');
-    if (modalOverlay) {
-        modalOverlay.classList.remove('active');
-        // Удаляем модальное окно после анимации
-        setTimeout(() => {
-            if (modalOverlay.parentNode) {
-                modalOverlay.parentNode.removeChild(modalOverlay);
-            }
-        }, 300);
-    }
-}
-
-// Функция для поделиться подарком
-function shareGift(gift, mode) {
-    const marketName = mode === 'fragment' ? 'SS_store' : 'внутренняя биржа SS_store';
-    const shareText = `Посмотри этот подарок в Stars Store: ${gift.name} (${gift.price} звёзд) на ${marketName}`;
+// Покупка подарка
+async function buyGift(giftId, mode) {
+    console.log(`Покупка подарка ${giftId} из ${mode}`);
     
-    // Используем Telegram Web App API для поделиться
-    if (tgApp.showShareButton) {
-        tgApp.showShareButton();
-        tgApp.onShareButtonClicked(() => {
-            tgApp.shareMessage(shareText);
-        });
-    } else {
-        // Если метод не поддерживается, показываем сообщение
-        tgApp.showPopup({
-            title: 'Поделиться',
-            message: 'Функция "Поделиться" не поддерживается в текущей версии Telegram',
-            buttons: [{type: 'ok'}]
-        });
-    }
-}
-
-// Функция покупки подарка
-function buyGift(gift, mode) {
-    const marketName = mode === 'fragment' ? 'SS_store' : 'внутренняя биржа SS_store';
+    // Показываем подтверждение
     tgApp.showConfirm(
-        `Вы хотите купить ${gift.name} за ${gift.price} звёзд на ${marketName}?`,
+        'Подтверждение покупки',
+        `Вы уверены, что хотите купить подарок #${giftId}?`,
         (confirmed) => {
             if (confirmed) {
-                // Отправляем данные о покупке в зависимости от режима
-                const purchaseData = {
-                    gift_id: gift.id,
-                    price: gift.price,
-                    market: mode,
-                    ...(mode === 'fragment' && { seller_id: gift.seller_id })
-                };
-
-                // Здесь будет логика отправки данных на сервер
-                console.log('Отправка данных о покупке:', purchaseData);
-
-                tgApp.showPopup({
-                    title: 'Покупка подарка',
-                    message: `Подарок ${gift.name} успешно куплен на ${marketName}!`,
-                    buttons: [{type: 'ok'}]
-                });
+                // Показываем индикатор загрузки
+                loader.style.display = 'flex';
                 
-                // Закрываем модальное окно после покупки
-                closeGiftModal();
+                // Имитируем запрос к серверу
+                setTimeout(() => {
+                    // Скрываем индикатор загрузки
+                    loader.style.display = 'none';
+                    
+                    // Показываем уведомление об успешной покупке
+                    tgApp.showPopup({
+                        title: 'Успех',
+                        message: `Подарок #${giftId} успешно куплен!`,
+                        buttons: [{type: 'ok'}]
+                    });
+                    
+                    // Закрываем модальное окно
+                    const modal = document.querySelector('.gift-details-modal');
+                    if (modal) {
+                        modal.remove();
+                    }
+                    
+                    // Обновляем список подарков
+                    loadGifts(mode);
+                }, 1500);
             }
         }
     );
 }
 
-// Функция для связи с продавцом (только для Fragment Market)
-function contactSeller(sellerId) {
-    // Здесь будет логика для связи с продавцом через Telegram
-    console.log('Связь с продавцом:', sellerId);
-    tgApp.showPopup({
-        title: 'Связь с продавцом',
-        message: 'Сейчас вы будете перенаправлены в чат с продавцом',
-        buttons: [{type: 'ok'}]
-    });
-    
-    // Закрываем модальное окно после нажатия на кнопку
-    closeGiftModal();
-}
-
-// Загружаем подарки для начального режима (Fragment Market)
-switchMode('fragment');
+// Загружаем подарки при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    // Загружаем подарки для режима по умолчанию
+    switchMode(currentMode);
+});

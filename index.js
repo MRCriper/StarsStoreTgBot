@@ -3,17 +3,43 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// Импортируем бота, контроллер Fragment API и легкую версию парсера Fragment
+// Импортируем бота и контроллер Fragment API
 const bot = require('./bot');
 const FragmentController = require('./fragment-controller');
-const fragmentApiLight = require('./fragment-api-light');
+const fragmentClientPy = require('./public/fragment-client-py');
 
 // Создаем экземпляр контроллера Fragment API
 const fragmentController = new FragmentController();
 
-// Запускаем легкую версию парсера Fragment с периодичностью обновления каждые 6 часов
-// Парсим первые 10 страниц по 20 подарков на каждой
-fragmentApiLight.startScheduler('0 */6 * * *', 10, 20);
+// Запускаем обновление данных Fragment через Python-бэкенд
+console.log('Запуск обновления данных Fragment через Python-бэкенд...');
+fragmentClientPy.startFragmentUpdate()
+  .then(result => {
+    console.log('Результат запуска обновления данных Fragment:', result);
+  })
+  .catch(error => {
+    console.error('Ошибка при запуске обновления данных Fragment:', error);
+  });
+
+// Настраиваем регулярное обновление данных каждые 6 часов
+const CronJob = require('cron').CronJob;
+const job = new CronJob(
+  '0 */6 * * *',
+  function() {
+    console.log(`Запуск запланированного обновления данных Fragment: ${new Date().toISOString()}`);
+    fragmentClientPy.startFragmentUpdate()
+      .then(result => {
+        console.log('Результат запланированного обновления данных Fragment:', result);
+      })
+      .catch(error => {
+        console.error('Ошибка при запланированном обновлении данных Fragment:', error);
+      });
+  },
+  null,
+  true,
+  'UTC'
+);
+job.start();
 
 // Путь к файлу с данными рефералов
 const REFERRALS_DATA_PATH = path.join(__dirname, 'referrals-data.json');
