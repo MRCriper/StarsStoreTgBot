@@ -13,7 +13,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
-from ton_fragment import FragmentAPI, FragmentGift, FragmentCollection
+import ton_fragment as fragment
 
 # Настройка логирования
 logging.basicConfig(
@@ -34,7 +34,7 @@ app = Flask(__name__)
 CORS(app)  # Разрешаем CORS для всех маршрутов
 
 # Инициализация Fragment API
-fragment_api = FragmentAPI(
+fragment_client = fragment.Client(
     api_key=os.getenv("FRAGMENT_API_KEY", ""),
     api_secret=os.getenv("FRAGMENT_API_SECRET", "")
 )
@@ -130,34 +130,34 @@ def create_test_data():
     
     return gifts_data
 
-# Преобразование объекта FragmentGift в словарь для JSON
-def gift_to_dict(gift: FragmentGift):
+# Преобразование объекта Gift в словарь для JSON
+def gift_to_dict(gift):
     return {
-        "id": str(gift.id),
-        "name": gift.name,
-        "owner": gift.owner,
-        "collection": gift.collection.name if gift.collection else "Unknown",
-        "status": "for_sale" if gift.for_sale else ("on_auction" if gift.on_auction else "not_for_sale"),
+        "id": str(gift.get('id', '0')),
+        "name": gift.get('name', 'Unknown'),
+        "owner": gift.get('owner', 'unknown'),
+        "collection": gift.get('collection', 'Unknown'),
+        "status": gift.get('status', 'not_for_sale'),
         "price": {
-            "amount": str(gift.price) if gift.price else "0",
+            "amount": str(gift.get('price', 0)),
             "currency": "TON"
         },
         "model": {
-            "name": gift.model.name if gift.model else "Unknown",
-            "rarity": f"{gift.model.rarity:.1f}%" if gift.model and gift.model.rarity else ""
+            "name": gift.get('model', {}).get('name', 'Unknown'),
+            "rarity": f"{gift.get('model', {}).get('rarity', 0):.1f}%"
         },
         "background": {
-            "name": gift.background.name if gift.background else "Unknown",
-            "rarity": f"{gift.background.rarity:.1f}%" if gift.background and gift.background.rarity else ""
+            "name": gift.get('background', {}).get('name', 'Unknown'),
+            "rarity": f"{gift.get('background', {}).get('rarity', 0):.1f}%"
         },
         "symbol": {
-            "name": gift.symbol.name if gift.symbol else "Unknown",
-            "rarity": f"{gift.symbol.rarity:.1f}%" if gift.symbol and gift.symbol.rarity else ""
+            "name": gift.get('symbol', {}).get('name', 'Unknown'),
+            "rarity": f"{gift.get('symbol', {}).get('rarity', 0):.1f}%"
         },
-        "supply": gift.supply if gift.supply else "Unknown",
-        "image": gift.image_url if gift.image_url else f"https://via.placeholder.com/300x300?text={gift.name}",
-        "animatedImage": gift.animated_url if gift.animated_url else None,
-        "url": gift.url if gift.url else f"https://fragment.com/gift/{gift.id}"
+        "supply": gift.get('supply', 'Unknown'),
+        "image": gift.get('image', f"https://via.placeholder.com/300x300?text={gift.get('name', 'Unknown')}"),
+        "animatedImage": gift.get('animated_image'),
+        "url": gift.get('url', f"https://fragment.com/gift/{gift.get('id', '0')}")
     }
 
 # Маршрут для получения списка подарков
@@ -174,25 +174,30 @@ def get_gifts():
             # Пытаемся получить подарки через API
             gifts = []
             
-            if collection:
-                # Получаем подарки из указанной коллекции
-                collection_obj = fragment_api.get_collection_by_name(collection)
-                if collection_obj:
-                    gifts_list = fragment_api.get_gifts_by_collection(collection_obj)
-                    gifts = [gift_to_dict(gift) for gift in gifts_list]
-            else:
+            try:
                 # Получаем все подарки
-                all_gifts = fragment_api.get_all_gifts()
-                gifts = [gift_to_dict(gift) for gift in all_gifts]
-            
-            # Фильтруем по статусу, если указан
-            if status != 'all':
-                if status == 'for_sale':
-                    gifts = [gift for gift in gifts if gift['status'] == 'for_sale']
-                elif status == 'on_auction':
-                    gifts = [gift for gift in gifts if gift['status'] == 'on_auction']
-                elif status == 'available':
-                    gifts = [gift for gift in gifts if gift['status'] in ['for_sale', 'on_auction']]
+                if collection:
+                    # Получаем подарки из указанной коллекции
+                    gifts_list = fragment.get_gifts_by_collection(fragment_client, collection)
+                else:
+                    # Получаем все подарки
+                    gifts_list = fragment.get_all_gifts(fragment_client)
+                
+                # Преобразуем в словари
+                gifts = [gift_to_dict(gift) for gift in gifts_list]
+                
+                # Фильтруем по статусу, если указан
+                if status != 'all':
+                    if status == 'for_sale':
+                        gifts = [gift for gift in gifts if gift['status'] == 'for_sale']
+                    elif status == 'on_auction':
+                        gifts = [gift for gift in gifts if gift['status'] == 'on_auction']
+                    elif status == 'available':
+                        gifts = [gift for gift in gifts if gift['status'] in ['for_sale', 'on_auction']]
+            except Exception as api_error:
+                logger.error(f"Ошибка при вызове API ton_fragment: {api_error}")
+                # Создаем тестовые данные
+                gifts = []
             
             # Сохраняем данные в файл
             gifts_data = {
@@ -256,29 +261,32 @@ def get_gift_by_id(gift_id):
         
         try:
             # Пытаемся получить подарок через API
-            gift = fragment_api.get_gift_by_id(gift_id)
-            if gift:
-                gift_data = gift_to_dict(gift)
-                return jsonify({
-                    "success": True,
-                    "gift": gift_data
-                })
-            else:
-                # Если подарок не найден через API, ищем в файле
-                gifts_data = load_gifts_data()
-                gift_data = next((gift for gift in gifts_data["gifts"] if gift["id"] == gift_id), None)
-                
-                if gift_data:
+            try:
+                gift = fragment.get_gift_by_id(fragment_client, gift_id)
+                if gift:
+                    gift_data = gift_to_dict(gift)
                     return jsonify({
                         "success": True,
-                        "gift": gift_data,
-                        "fromCache": True
+                        "gift": gift_data
                     })
-                else:
-                    return jsonify({
-                        "success": False,
-                        "error": "Gift not found"
-                    }), 404
+            except Exception as api_error:
+                logger.error(f"Ошибка при получении подарка через API: {api_error}")
+                
+            # Если подарок не найден через API или произошла ошибка, ищем в файле
+            gifts_data = load_gifts_data()
+            gift_data = next((gift for gift in gifts_data["gifts"] if gift["id"] == gift_id), None)
+            
+            if gift_data:
+                return jsonify({
+                    "success": True,
+                    "gift": gift_data,
+                    "fromCache": True
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": "Gift not found"
+                }), 404
         
         except Exception as api_error:
             logger.error(f"Ошибка при получении подарка через API: {api_error}")
@@ -314,8 +322,9 @@ def get_collections():
         
         try:
             # Пытаемся получить коллекции через API
-            collections = fragment_api.get_all_collections()
-            collections_data = [{"id": str(col.id), "name": col.name} for col in collections]
+            collections = fragment.get_all_collections(fragment_client)
+            collections_data = [{"id": str(col.get('id', i)), "name": col.get('name', f'Collection {i}')}
+                               for i, col in enumerate(collections)]
             
             logger.info(f"Получено {len(collections_data)} коллекций")
             
@@ -360,23 +369,36 @@ def update_gifts():
         
         try:
             # Получаем все подарки через API
-            all_gifts = fragment_api.get_all_gifts()
-            gifts = [gift_to_dict(gift) for gift in all_gifts]
-            
-            # Сохраняем данные в файл
-            gifts_data = {
-                "gifts": gifts,
-                "lastUpdated": datetime.now().isoformat()
-            }
-            save_gifts_data(gifts_data)
-            
-            logger.info(f"Обновлено {len(gifts)} подарков")
-            
-            return jsonify({
-                "success": True,
-                "message": f"Updated {len(gifts)} gifts",
-                "lastUpdated": gifts_data["lastUpdated"]
-            })
+            try:
+                all_gifts = fragment.get_all_gifts(fragment_client)
+                gifts = [gift_to_dict(gift) for gift in all_gifts]
+                
+                # Сохраняем данные в файл
+                gifts_data = {
+                    "gifts": gifts,
+                    "lastUpdated": datetime.now().isoformat()
+                }
+                save_gifts_data(gifts_data)
+                
+                logger.info(f"Обновлено {len(gifts)} подарков")
+                
+                return jsonify({
+                    "success": True,
+                    "message": f"Updated {len(gifts)} gifts",
+                    "lastUpdated": gifts_data["lastUpdated"]
+                })
+            except Exception as api_error:
+                logger.error(f"Ошибка при обновлении подарков через API: {api_error}")
+                # Создаем тестовые данные
+                gifts_data = create_test_data()
+                
+                return jsonify({
+                    "success": True,
+                    "message": f"Created {len(gifts_data['gifts'])} test gifts due to API error",
+                    "lastUpdated": gifts_data["lastUpdated"],
+                    "isTestData": True,
+                    "error": str(api_error)
+                })
         
         except Exception as api_error:
             logger.error(f"Ошибка при обновлении подарков через API: {api_error}")
@@ -422,18 +444,25 @@ def buy_gift():
         
         try:
             # Пытаемся купить подарок через API
-            result = fragment_api.buy_gift(gift_id, recipient)
-            
-            if result.success:
-                return jsonify({
-                    "success": True,
-                    "message": f"Gift {gift_id} successfully purchased and sent to {recipient}",
-                    "transactionId": result.transaction_id
-                })
-            else:
+            try:
+                result = fragment.buy_gift(fragment_client, gift_id, recipient)
+                
+                if result and result.get('success'):
+                    return jsonify({
+                        "success": True,
+                        "message": f"Gift {gift_id} successfully purchased and sent to {recipient}",
+                        "transactionId": result.get('transaction_id', 'unknown')
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": result.get('error', 'Unknown error')
+                    }), 400
+            except Exception as api_error:
+                logger.error(f"Ошибка при покупке подарка через API: {api_error}")
                 return jsonify({
                     "success": False,
-                    "error": result.error
+                    "error": str(api_error)
                 }), 400
         
         except Exception as api_error:
