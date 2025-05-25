@@ -901,7 +901,7 @@ function getUserFromCache(username) {
 initContactsDropdown();
 
 // Обработчик для кнопки "Купить"
-buyButton.addEventListener('click', () => {
+buyButton.addEventListener('click', async () => {
     let username = usernameInput.value.trim();
     
     // Проверка ввода
@@ -944,18 +944,58 @@ buyButton.addEventListener('click', () => {
     // Показываем индикатор загрузки
     loader.style.display = 'flex';
     
-    // Отправляем данные заказа в бот
-    const orderData = {
-        username: username,
-        stars: selectedStars,
-        price: selectedPrice
-    };
-    
-    // Отправляем данные в бот
-    tgApp.sendData(JSON.stringify(orderData));
-    
-    // Закрываем приложение
-    tgApp.close();
+    try {
+        // Пытаемся купить звезды через Fragment API
+        const result = await fragmentClient.buyStars(username, selectedStars, false);
+        
+        if (result.success) {
+            // Если операция успешна, показываем сообщение об успехе
+            tgApp.showPopup({
+                title: 'Успешно!',
+                message: `${selectedStars} звезд успешно отправлено пользователю @${username}.\n\nID транзакции: ${result.orderId}`,
+                buttons: [{type: 'ok'}]
+            });
+            
+            // Отправляем данные заказа в бот для информации
+            const orderData = {
+                username: username,
+                stars: selectedStars,
+                price: selectedPrice,
+                transaction_id: result.orderId,
+                fragment_api: true
+            };
+            
+            // Отправляем данные в бот
+            tgApp.sendData(JSON.stringify(orderData));
+            
+            // Закрываем приложение
+            setTimeout(() => {
+                tgApp.close();
+            }, 2000);
+        } else {
+            // Если операция не удалась, показываем сообщение об ошибке
+            tgApp.showPopup({
+                title: 'Ошибка',
+                message: `Не удалось отправить звезды: ${result.error || 'Неизвестная ошибка'}`,
+                buttons: [{type: 'ok'}]
+            });
+            
+            // Скрываем индикатор загрузки
+            loader.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Ошибка при покупке звезд:', error);
+        
+        // Показываем сообщение об ошибке
+        tgApp.showPopup({
+            title: 'Ошибка',
+            message: `Произошла ошибка при покупке звезд: ${error.message || 'Неизвестная ошибка'}`,
+            buttons: [{type: 'ok'}]
+        });
+        
+        // Скрываем индикатор загрузки
+        loader.style.display = 'none';
+    }
 });
 
 // Инициализация при загрузке страницы

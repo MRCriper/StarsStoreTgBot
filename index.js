@@ -3,8 +3,12 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// Импортируем бота
+// Импортируем бота и контроллер Fragment API
 const bot = require('./bot');
+const FragmentController = require('./fragment-controller');
+
+// Создаем экземпляр контроллера Fragment API
+const fragmentController = new FragmentController();
 
 // Путь к файлу с данными рефералов
 const REFERRALS_DATA_PATH = path.join(__dirname, 'referrals-data.json');
@@ -401,6 +405,148 @@ app.get('/api/search-user', async (req, res) => {
       success: false, 
       error: 'Internal server error',
       error_code: 'SERVER_ERROR'
+    });
+  }
+});
+
+// API эндпоинты для работы с Fragment API
+app.post('/api/fragment/buy-stars', async (req, res) => {
+  try {
+    // Получаем идентификатор пользователя из заголовка Telegram WebApp
+    const initData = req.headers['x-telegram-web-app-init-data'];
+    
+    if (!initData) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+    
+    // Парсим данные инициализации
+    const initDataParams = new URLSearchParams(initData);
+    const user = JSON.parse(initDataParams.get('user') || '{}');
+    const userId = user.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User ID not found'
+      });
+    }
+    
+    // Получаем данные из тела запроса
+    const { username, quantity, show_sender } = req.body;
+    
+    // Проверяем наличие обязательных параметров
+    if (!username || !quantity) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username and quantity are required'
+      });
+    }
+    
+    // Покупаем звезды через Fragment API
+    const result = await fragmentController.buyStars(username, quantity, show_sender);
+    
+    // Возвращаем результат операции
+    return res.json(result);
+  } catch (error) {
+    console.error('Ошибка при покупке звезд через API:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+app.get('/api/fragment/check-transaction/:id', async (req, res) => {
+  try {
+    // Получаем идентификатор пользователя из заголовка Telegram WebApp
+    const initData = req.headers['x-telegram-web-app-init-data'];
+    
+    if (!initData) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+    
+    // Парсим данные инициализации
+    const initDataParams = new URLSearchParams(initData);
+    const user = JSON.parse(initDataParams.get('user') || '{}');
+    const userId = user.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User ID not found'
+      });
+    }
+    
+    // Получаем ID транзакции из параметров запроса
+    const transactionId = req.params.id;
+    
+    if (!transactionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Transaction ID is required'
+      });
+    }
+    
+    // Проверяем статус транзакции через Fragment API
+    const result = await fragmentController.checkTransactionStatus(transactionId);
+    
+    // Возвращаем результат операции
+    return res.json(result);
+  } catch (error) {
+    console.error('Ошибка при проверке статуса транзакции через API:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+app.get('/api/fragment/transactions', async (req, res) => {
+  try {
+    // Получаем идентификатор пользователя из заголовка Telegram WebApp
+    const initData = req.headers['x-telegram-web-app-init-data'];
+    
+    if (!initData) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+    
+    // Парсим данные инициализации
+    const initDataParams = new URLSearchParams(initData);
+    const user = JSON.parse(initDataParams.get('user') || '{}');
+    const userId = user.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User ID not found'
+      });
+    }
+    
+    // Получаем лимит из параметров запроса
+    const limit = parseInt(req.query.limit) || 5;
+    
+    // Получаем историю транзакций через Fragment API
+    const transactions = fragmentController.getTransactionsHistory(limit);
+    
+    // Возвращаем результат операции
+    return res.json({
+      success: true,
+      transactions: transactions
+    });
+  } catch (error) {
+    console.error('Ошибка при получении истории транзакций через API:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
     });
   }
 });

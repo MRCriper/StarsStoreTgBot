@@ -3,8 +3,14 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Импортируем контроллер Fragment API
+const FragmentController = require('./fragment-controller');
+
 // Создаем экземпляр бота
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+
+// Создаем экземпляр контроллера Fragment API
+const fragmentController = new FragmentController();
 
 // Путь к файлу с данными рефералов
 const REFERRALS_DATA_PATH = path.join(__dirname, 'referrals-data.json');
