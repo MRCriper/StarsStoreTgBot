@@ -56,6 +56,11 @@ const starsstoreSection = document.getElementById('starsstore-section');
 const fragmentGiftList = document.getElementById('fragment-gift-list');
 const starsstoreGiftList = document.getElementById('starsstore-gift-list');
 const loader = document.getElementById('loader');
+// Глобальные переменные для работы с коллекциями и фильтрации
+let currentMode = 'starsstore'; // По умолчанию показываем StarsStore Market
+let selectedGift = null; // Выбранный подарок
+let collections = []; // Список коллекций для фильтрации
+let currentCollection = null; // Текущая выбранная коллекция
 const mainNav = document.getElementById('main-nav');
 
 // Обновляем стиль кнопки "Главная" для соответствия общему дизайну
@@ -94,11 +99,15 @@ fragmentMode.addEventListener('click', () => switchMode('fragment'));
 starsstoreMode.addEventListener('click', () => switchMode('starsstore'));
 
 // Загрузка подарков из соответствующего источника
-async function loadGifts(mode) {
+async function loadGifts(mode, collection = null) {
     try {
         loader.style.display = 'flex';
         
         let gifts = [];
+        
+        // Сохраняем текущий режим и коллекцию
+        currentMode = mode;
+        currentCollection = collection;
         
         // В зависимости от режима, загружаем подарки из разных источников
         if (mode === 'fragment') {
@@ -107,11 +116,25 @@ async function loadGifts(mode) {
                 gifts = await fragmentClient.getFragmentGifts();
                 console.log(`Получено ${gifts.length} подарков Fragment через API`);
                 
+                // Извлекаем список коллекций из подарков
+                collections = extractCollections(gifts);
+                
+                // Если указана коллекция, фильтруем подарки
+                if (collection) {
+                    console.log(`Фильтрация по коллекции: ${collection}`);
+                    gifts = gifts.filter(gift => gift.collection === collection);
+                    console.log(`После фильтрации осталось ${gifts.length} подарков`);
+                }
+                
+                // Фильтруем только подарки на продаже или аукционе
+                gifts = gifts.filter(gift => gift.status === 'for_sale' || gift.status === 'on_auction');
+                console.log(`После фильтрации по статусу осталось ${gifts.length} подарков`);
+                
                 // Если подарков нет, показываем уведомление
                 if (gifts.length === 0) {
                     tgApp.showPopup({
                         title: 'Информация',
-                        message: 'Подарки Fragment загружаются. Это может занять некоторое время. Пожалуйста, проверьте позже.',
+                        message: 'Подарки Fragment загружаются или отсутствуют в выбранной коллекции. Пожалуйста, проверьте позже или выберите другую коллекцию.',
                         buttons: [{type: 'ok'}]
                     });
                     
@@ -123,6 +146,9 @@ async function loadGifts(mode) {
                         console.error('Ошибка при запуске парсинга Fragment:', parsingError);
                     }
                 }
+                
+                // Создаем фильтр коллекций
+                createCollectionFilter(collections);
             } catch (apiError) {
                 console.error('Ошибка при загрузке подарков Fragment через API:', apiError);
                 
@@ -139,9 +165,99 @@ async function loadGifts(mode) {
                     const response = await fetch('fragment_gifts.json');
                     const data = await response.json();
                     gifts = data.gifts || [];
+                    
+                    // Извлекаем список коллекций из подарков
+                    collections = extractCollections(gifts);
+                    
+                    // Если указана коллекция, фильтруем подарки
+                    if (collection) {
+                        gifts = gifts.filter(gift => gift.collection === collection);
+// Извлечение списка коллекций из подарков
+function extractCollections(gifts) {
+    const collectionsSet = new Set();
+    
+    // Добавляем все коллекции из подарков
+    gifts.forEach(gift => {
+        if (gift.collection) {
+            collectionsSet.add(gift.collection);
+        }
+    });
+    
+    // Преобразуем Set в массив и сортируем
+    return Array.from(collectionsSet).sort();
+}
+
+// Создание фильтра коллекций
+function createCollectionFilter(collectionsList) {
+    // Находим или создаем контейнер для фильтра
+    let filterContainer = document.getElementById('collection-filter');
+    
+    if (!filterContainer) {
+        filterContainer = document.createElement('div');
+        filterContainer.id = 'collection-filter';
+        filterContainer.className = 'collection-filter';
+        
+        // Добавляем контейнер перед списком подарков
+        fragmentGiftList.parentNode.insertBefore(filterContainer, fragmentGiftList);
+    }
+    
+    // Очищаем контейнер
+    filterContainer.innerHTML = '';
+    
+    // Добавляем заголовок
+    const filterTitle = document.createElement('h3');
+    filterTitle.textContent = 'Коллекции';
+    filterContainer.appendChild(filterTitle);
+    
+    // Создаем список коллекций
+    const filterList = document.createElement('div');
+    filterList.className = 'collection-filter-list';
+    
+    // Добавляем опцию "Все коллекции"
+    const allOption = document.createElement('div');
+    allOption.className = `collection-filter-item ${currentCollection === null ? 'active' : ''}`;
+    allOption.textContent = 'Все коллекции';
+    allOption.addEventListener('click', () => {
+        loadGifts('fragment', null);
+    });
+    filterList.appendChild(allOption);
+    
+    // Добавляем опции для каждой коллекции
+    collectionsList.forEach(collection => {
+        const option = document.createElement('div');
+        option.className = `collection-filter-item ${currentCollection === collection ? 'active' : ''}`;
+        option.textContent = collection;
+        option.addEventListener('click', () => {
+            loadGifts('fragment', collection);
+        });
+        filterList.appendChild(option);
+    });
+    
+    // Добавляем список в контейнер
+    filterContainer.appendChild(filterList);
+    
+    // Показываем фильтр
+    filterContainer.style.display = 'block';
+}
+
+// Скрытие фильтра коллекций
+function hideCollectionFilter() {
+    const filterContainer = document.getElementById('collection-filter');
+    if (filterContainer) {
+        filterContainer.style.display = 'none';
+    }
+}
+                    }
+                    
+                    // Фильтруем только подарки на продаже или аукционе
+                    gifts = gifts.filter(gift => gift.status === 'for_sale' || gift.status === 'on_auction');
+                    
+                    // Создаем фильтр коллекций
+                    createCollectionFilter(collections);
                 } catch (fallbackError) {
                     console.error('Ошибка при загрузке из локального JSON файла:', fallbackError);
                     gifts = [];
+                    collections = [];
                 }
             }
         } else {
@@ -154,6 +270,9 @@ async function loadGifts(mode) {
                 console.log('Данные StarsStore:', data);
                 gifts = data.gifts;
                 console.log('Подарки StarsStore:', gifts);
+                
+                // Скрываем фильтр коллекций для StarsStore
+                hideCollectionFilter();
             } catch (error) {
                 console.error('Ошибка при загрузке подарков StarsStore:', error);
                 gifts = [];
@@ -207,6 +326,34 @@ function renderGifts(gifts, mode) {
         giftElement.setAttribute('data-gift-id', gift.id);
         giftElement.setAttribute('data-market', mode);
         
+        // Добавляем обработчик клика для просмотра деталей подарка
+        giftElement.addEventListener('click', (event) => {
+            // Проверяем, был ли клик по кнопке переключения анимации
+            if (event.target.closest('.animation-toggle')) {
+                event.stopPropagation(); // Предотвращаем всплытие события
+                
+                // Переключаем класс для анимации
+                const imageContainer = event.target.closest('.gift-image');
+                if (imageContainer) {
+                    imageContainer.classList.toggle('show-animation');
+                    
+                    // Меняем иконку
+                    const toggleIcon = event.target.closest('.animation-toggle').querySelector('i');
+                    if (toggleIcon) {
+                        if (imageContainer.classList.contains('show-animation')) {
+                            toggleIcon.className = 'fas fa-pause';
+                        } else {
+                            toggleIcon.className = 'fas fa-play';
+                        }
+                    }
+                }
+                return;
+            }
+            
+            // Обычный клик по подарку - показываем детали
+            showGiftDetails(gift, mode);
+        });
+        
         // Получаем URL изображения для подарка
         const imageUrl = getGiftImageUrl(gift);
         
@@ -217,16 +364,49 @@ function renderGifts(gifts, mode) {
             const backgroundRarity = gift.background && gift.background.rarity ? gift.background.rarity : '';
             const symbolRarity = gift.symbol && gift.symbol.rarity ? gift.symbol.rarity : '';
             
+            // Добавляем класс для статуса (продажа или аукцион)
+            if (gift.status === 'for_sale') {
+                giftElement.classList.add('for-sale');
+            } else if (gift.status === 'on_auction') {
+                giftElement.classList.add('on-auction');
+            }
+            
+            // Определяем, есть ли анимированное изображение
+            const hasAnimation = gift.animatedImage && gift.animatedImage.length > 0;
+            
             giftElement.innerHTML = `
-                <div class="gift-image">
-                    <img src="${imageUrl}" alt="${gift.name}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'fas fa-gem\\'></i>';">
+                <div class="gift-image ${hasAnimation ? 'has-animation' : ''}">
+                    <img src="${imageUrl}" alt="${gift.name}" class="static-image" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=Gift'; this.parentElement.innerHTML += '<i class=\\'fas fa-gem\\'></i>';">
+                    ${hasAnimation ? `
+                        <div class="animated-image">
+                            ${gift.animatedImage.endsWith('.gif')
+                                ? `<img src="${gift.animatedImage}" alt="${gift.name} (animated)" class="gif-animation">`
+                                : `<video autoplay loop muted playsinline class="video-animation">
+                                    <source src="${gift.animatedImage}" type="video/mp4">
+                                  </video>`
+                            }
+                        </div>
+                        <div class="animation-toggle">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="gift-status">
+                    ${gift.status === 'for_sale' ? '<span class="sale-badge">Продажа</span>' : ''}
+                    ${gift.status === 'on_auction' ? '<span class="auction-badge">Аукцион</span>' : ''}
                 </div>
                 <div class="gift-info-preview">
                     <h3>${gift.name}</h3>
                     <div class="gift-details-preview">
                         <span class="gift-owner">@${gift.owner || 'unknown'}</span>
                         <span class="gift-supply">${gift.supply || ''}</span>
+                        ${gift.collection ? `<span class="gift-collection">${gift.collection}</span>` : ''}
                     </div>
+                    ${gift.price && gift.price.amount ? `
+                        <div class="gift-price">
+                            <span>${gift.price.amount} ${gift.price.currency || 'TON'}</span>
+                        </div>
+                    ` : ''}
                 </div>
                 <div class="gift-id">#${gift.id}</div>
             `;

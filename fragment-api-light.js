@@ -108,6 +108,17 @@ class FragmentApiLight {
       // Загружаем HTML в cheerio
       const $ = cheerio.load(html);
       
+      // Проверяем, является ли подарок "For sale" или "On auction"
+      const saleStatus = $('.sale-status, .auction-status, .status').text().trim().toLowerCase();
+      const isForSale = saleStatus.includes('for sale') || saleStatus.includes('on sale');
+      const isOnAuction = saleStatus.includes('on auction') || saleStatus.includes('auction');
+      
+      // Если подарок не продается и не на аукционе, пропускаем его
+      if (!isForSale && !isOnAuction) {
+        console.log(`Подарок ${giftUrl} не продается и не на аукционе, пропускаем`);
+        return null;
+      }
+      
       // Извлекаем данные подарка
       // Название и номер
       const titleText = $('h1').first().text().trim();
@@ -127,52 +138,138 @@ class FragmentApiLight {
         owner = ownerElement.text().trim();
       }
       
+      // Коллекция
+      let collection = 'Неизвестно';
+      const collectionElement = $('.collection-name, .collection a, a[href^="/collection/"]').first();
+      if (collectionElement.length) {
+        collection = collectionElement.text().trim();
+      }
+      
+      // Цена (если продается)
+      let price = '0';
+      let currency = 'TON';
+      const priceElement = $('.price, .sale-price, .auction-price').first();
+      if (priceElement.length) {
+        const priceText = priceElement.text().trim();
+        const priceMatch = priceText.match(/([0-9,.]+)\s*([A-Za-z]+)/);
+        if (priceMatch) {
+          price = priceMatch[1];
+          currency = priceMatch[2];
+        }
+      }
+      
       // Функция для извлечения свойства
       const extractProperty = (propertyName) => {
-        const propertyElement = $(`.property:contains("${propertyName}")`).first();
-        if (propertyElement.length) {
-          const text = propertyElement.text().trim();
-          const parts = text.split(':');
-          if (parts.length > 1) {
-            const valueParts = parts[1].trim().split(' ');
-            if (valueParts.length > 1 && valueParts[valueParts.length - 1].includes('%')) {
-              return {
-                name: valueParts.slice(0, -1).join(' '),
-                rarity: valueParts[valueParts.length - 1]
-              };
+        // Пробуем разные селекторы для поиска свойства
+        const selectors = [
+          `.property:contains("${propertyName}")`,
+          `.attribute:contains("${propertyName}")`,
+          `.trait:contains("${propertyName}")`,
+          `div:contains("${propertyName}")`
+        ];
+        
+        for (const selector of selectors) {
+          const propertyElement = $(selector).first();
+          if (propertyElement.length) {
+            const text = propertyElement.text().trim();
+            // Проверяем, содержит ли текст двоеточие
+            if (text.includes(':')) {
+              const parts = text.split(':');
+              if (parts.length > 1) {
+                const valueParts = parts[1].trim().split(' ');
+                // Проверяем, содержит ли последняя часть процент (редкость)
+                if (valueParts.length > 1 && valueParts[valueParts.length - 1].includes('%')) {
+                  return {
+                    name: valueParts.slice(0, -1).join(' '),
+                    rarity: valueParts[valueParts.length - 1]
+                  };
+                }
+                return { name: parts[1].trim(), rarity: '' };
+              }
             }
-            return { name: parts[1].trim(), rarity: '' };
           }
         }
+        
         return { name: 'Неизвестно', rarity: '' };
       };
       
       // Модель, фон и символ
-      const model = extractProperty('Модель');
-      const background = extractProperty('Фон');
-      const symbol = extractProperty('Символ');
+      const model = extractProperty('Модель') || extractProperty('Model');
+      const background = extractProperty('Фон') || extractProperty('Background');
+      const symbol = extractProperty('Символ') || extractProperty('Symbol');
       
       // Саплай
       let supply = 'Неизвестно';
-      const supplyElement = $(`.property:contains("Саплай")`).first();
-      if (supplyElement.length) {
-        const text = supplyElement.text().trim();
-        const parts = text.split(':');
-        if (parts.length > 1) {
-          supply = parts[1].trim();
+      const supplySelectors = [
+        `.property:contains("Саплай")`,
+        `.property:contains("Supply")`,
+        `.attribute:contains("Supply")`,
+        `.trait:contains("Supply")`,
+        `div:contains("Supply")`
+      ];
+      
+      for (const selector of supplySelectors) {
+        const supplyElement = $(selector).first();
+        if (supplyElement.length) {
+          const text = supplyElement.text().trim();
+          if (text.includes(':')) {
+            const parts = text.split(':');
+            if (parts.length > 1) {
+              supply = parts[1].trim();
+              break;
+            }
+          }
         }
       }
       
-      // Изображение
+      // Изображение (статическое и анимированное)
       let imageUrl = '';
-      const imageElement = $('img.gift-image, img.nft-image, img.gift').first();
-      if (imageElement.length) {
-        imageUrl = imageElement.attr('src');
-      } else {
-        // Если не нашли по классам, ищем любое изображение
+      let animatedImageUrl = '';
+      
+      // Ищем статическое изображение
+      const imageSelectors = [
+        'img.gift-image',
+        'img.nft-image',
+        'img.gift',
+        '.gift-image img',
+        '.nft-image img',
+        '.image img',
+        '.media img'
+      ];
+      
+      for (const selector of imageSelectors) {
+        const imageElement = $(selector).first();
+        if (imageElement.length && imageElement.attr('src')) {
+          imageUrl = imageElement.attr('src');
+          break;
+        }
+      }
+      
+      // Если не нашли по селекторам, ищем любое изображение
+      if (!imageUrl) {
         const anyImage = $('img').first();
-        if (anyImage.length) {
+        if (anyImage.length && anyImage.attr('src')) {
           imageUrl = anyImage.attr('src');
+        }
+      }
+      
+      // Ищем анимированное изображение (видео или gif)
+      const animatedSelectors = [
+        'video source',
+        '.gift-animation video source',
+        '.nft-animation video source',
+        '.animation video source',
+        '.media video source',
+        'img.animated-gif',
+        '.gift-animation img[src$=".gif"]',
+        '.nft-animation img[src$=".gif"]'
+      ];
+      
+      for (const selector of animatedSelectors) {
+        const animatedElement = $(selector).first();
+        if (animatedElement.length) {
+          animatedImageUrl = animatedElement.attr('src');
+          break;
         }
       }
       
@@ -186,11 +283,18 @@ class FragmentApiLight {
         id: number,
         name: name,
         owner: owner,
+        collection: collection,
+        status: isForSale ? 'for_sale' : (isOnAuction ? 'on_auction' : 'not_for_sale'),
+        price: {
+          amount: price,
+          currency: currency
+        },
         model: model,
         background: background,
         symbol: symbol,
         supply: supply,
         image: imageUrl,
+        animatedImage: animatedImageUrl || null,
         url: giftUrl
       };
     } catch (error) {
@@ -203,14 +307,25 @@ class FragmentApiLight {
    * Получение списка URL подарков
    * @param {number} page - Номер страницы
    * @param {number} limit - Количество подарков на странице
+   * @param {string} collection - Коллекция для фильтрации (опционально)
    * @returns {Promise<Array<string>>} Список URL подарков
    */
-  async getGiftUrls(page = 1, limit = 20) {
+  async getGiftUrls(page = 1, limit = 20, collection = null) {
     try {
-      console.log(`Получение списка URL подарков (страница ${page}, лимит ${limit})`);
+      console.log(`Получение списка URL подарков (страница ${page}, лимит ${limit}, коллекция: ${collection || 'все'})`);
       
       // Формируем URL страницы со списком подарков
-      const url = `https://fragment.com/gifts?page=${page}&limit=${limit}`;
+      let url = `https://fragment.com/gifts?page=${page}&limit=${limit}`;
+      
+      // Если указана коллекция, добавляем фильтр
+      if (collection) {
+        url += `&collection=${encodeURIComponent(collection)}`;
+      }
+      
+      // Добавляем фильтр для отображения только подарков на продаже и аукционе
+      url += '&status=sale,auction';
+      
+      console.log(`Запрашиваем URL: ${url}`);
       
       // Получаем HTML страницы
       const html = await this.fetchHtml(url);
@@ -226,11 +341,25 @@ class FragmentApiLight {
       // Извлекаем URL подарков
       const giftUrls = [];
       
-      // Пробуем разные селекторы
+      // Извлекаем доступные коллекции для фильтрации
+      const collections = new Set();
+      $('.collection-filter a, .filter-collection a, a[href*="collection="]').each((i, element) => {
+        const collectionName = $(element).text().trim();
+        if (collectionName && collectionName !== 'All') {
+          collections.add(collectionName);
+        }
+      });
+      
+      console.log(`Найдены коллекции: ${Array.from(collections).join(', ') || 'нет'}`);
+      
+      // Сохраняем список коллекций
+      this.collections = Array.from(collections);
+      
+      // Пробуем разные селекторы для поиска подарков на продаже или аукционе
       const selectors = [
-        '.gift-item a',
-        '.nft-item a',
-        '.gift a',
+        '.gift-item.for-sale a, .gift-item.on-auction a',
+        '.nft-item.for-sale a, .nft-item.on-auction a',
+        '.gift.for-sale a, .gift.on-auction a',
         'a[href*="/gift/"]'
       ];
       
@@ -238,11 +367,21 @@ class FragmentApiLight {
         const elements = $(selector);
         if (elements.length > 0) {
           elements.each((i, element) => {
-            const href = $(element).attr('href');
-            if (href && href.includes('/gift/')) {
-              // Проверяем, является ли URL абсолютным или относительным
-              const fullUrl = href.startsWith('http') ? href : `https://fragment.com${href}`;
-              giftUrls.push(fullUrl);
+            // Проверяем, есть ли индикатор продажи или аукциона
+            const parent = $(element).closest('.gift-item, .nft-item, .gift');
+            const isForSale = parent.hasClass('for-sale') ||
+                             parent.find('.sale-status, .status:contains("sale")').length > 0;
+            const isOnAuction = parent.hasClass('on-auction') ||
+                               parent.find('.auction-status, .status:contains("auction")').length > 0;
+            
+            // Добавляем только подарки на продаже или аукционе
+            if (isForSale || isOnAuction) {
+              const href = $(element).attr('href');
+              if (href && href.includes('/gift/')) {
+                // Проверяем, является ли URL абсолютным или относительным
+                const fullUrl = href.startsWith('http') ? href : `https://fragment.com${href}`;
+                giftUrls.push(fullUrl);
+              }
             }
           });
           
@@ -253,22 +392,29 @@ class FragmentApiLight {
       }
       
       // Если не нашли по селекторам, ищем все ссылки, содержащие "/gift/"
+      // и проверяем, есть ли рядом индикатор продажи или аукциона
       if (giftUrls.length === 0) {
         $('a').each((i, element) => {
           const href = $(element).attr('href');
           if (href && href.includes('/gift/')) {
-            // Проверяем, является ли URL абсолютным или относительным
-            const fullUrl = href.startsWith('http') ? href : `https://fragment.com${href}`;
-            giftUrls.push(fullUrl);
+            const parent = $(element).closest('div');
+            const html = parent.html() || '';
+            
+            // Проверяем, есть ли индикатор продажи или аукциона
+            if (html.includes('sale') || html.includes('auction')) {
+              // Проверяем, является ли URL абсолютным или относительным
+              const fullUrl = href.startsWith('http') ? href : `https://fragment.com${href}`;
+              giftUrls.push(fullUrl);
+            }
           }
         });
       }
       
-      console.log(`Найдено ${giftUrls.length} URL подарков на странице ${page}`);
+      console.log(`Найдено ${giftUrls.length} URL подарков на продаже или аукционе на странице ${page}`);
       
       // Если не нашли ни одной ссылки, создаем тестовые URL
       if (giftUrls.length === 0) {
-        console.log('Не найдено ни одной ссылки на подарки. Создаем тестовые URL.');
+        console.log('Не найдено ни одной ссылки на подарки на продаже или аукционе. Создаем тестовые URL.');
         
         for (let i = 1; i <= 5; i++) {
           giftUrls.push(`https://fragment.com/gift/test${i}`);
@@ -294,41 +440,121 @@ class FragmentApiLight {
    * Парсинг данных подарков
    * @param {number} pages - Количество страниц для парсинга
    * @param {number} limit - Количество подарков на странице
+   * @param {string} collection - Коллекция для фильтрации (опционально)
    * @returns {Promise<boolean>} Результат операции
    */
-  async parseGifts(pages = 5, limit = 20) {
+  async parseGifts(pages = 5, limit = 20, collection = null) {
     if (this.isRunning) {
       console.log('Парсинг уже запущен');
       return false;
     }
     
     this.isRunning = true;
-    console.log(`Начало парсинга данных подарков (страниц: ${pages}, лимит: ${limit})`);
+    console.log(`Начало парсинга данных подарков (страниц: ${pages}, лимит: ${limit}, коллекция: ${collection || 'все'})`);
     
     try {
       // Временный массив для новых данных
       const newGifts = [];
       
-      // Парсим данные подарков с каждой страницы
-      for (let page = 1; page <= pages; page++) {
-        // Получаем список URL подарков
-        const giftUrls = await this.getGiftUrls(page, limit);
-        console.log(`Получено ${giftUrls.length} URL подарков на странице ${page}`);
+      // Если коллекция не указана, сначала получаем список всех коллекций
+      if (!collection) {
+        // Получаем список URL подарков с первой страницы, чтобы извлечь коллекции
+        await this.getGiftUrls(1, limit);
         
-        // Парсим данные каждого подарка
-        for (const giftUrl of giftUrls) {
-          const giftData = await this.parseGiftData(giftUrl);
+        // Если найдены коллекции, парсим каждую коллекцию отдельно
+        if (this.collections && this.collections.length > 0) {
+          console.log(`Найдено ${this.collections.length} коллекций: ${this.collections.join(', ')}`);
           
-          if (giftData) {
-            newGifts.push(giftData);
-            console.log(`Успешно спарсены данные подарка: ${giftData.name} #${giftData.id}`);
+          for (const collectionName of this.collections) {
+            console.log(`Парсинг коллекции: ${collectionName}`);
+            
+            // Парсим данные подарков для текущей коллекции
+            for (let page = 1; page <= pages; page++) {
+              // Получаем список URL подарков для текущей коллекции
+              const giftUrls = await this.getGiftUrls(page, limit, collectionName);
+              console.log(`Получено ${giftUrls.length} URL подарков на странице ${page} для коллекции ${collectionName}`);
+              
+              // Парсим данные каждого подарка
+              for (const giftUrl of giftUrls) {
+                const giftData = await this.parseGiftData(giftUrl);
+                
+                if (giftData) {
+                  newGifts.push(giftData);
+                  console.log(`Успешно спарсены данные подарка: ${giftData.name} #${giftData.id} (коллекция: ${collectionName})`);
+                }
+              }
+              
+              // Если на странице нет подарков, переходим к следующей коллекции
+              if (giftUrls.length === 0 || giftUrls[0].includes('test')) {
+                console.log(`Больше нет подарков в коллекции ${collectionName}. Переходим к следующей коллекции.`);
+                break;
+              }
+              
+              // Делаем паузу между страницами, чтобы не нагружать сервер
+              if (page < pages) {
+                console.log(`Пауза перед парсингом следующей страницы...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
+            }
+          }
+        } else {
+          // Если коллекции не найдены, парсим все подарки
+          console.log('Коллекции не найдены. Парсим все подарки.');
+          
+          // Парсим данные подарков с каждой страницы
+          for (let page = 1; page <= pages; page++) {
+            // Получаем список URL подарков
+            const giftUrls = await this.getGiftUrls(page, limit);
+            console.log(`Получено ${giftUrls.length} URL подарков на странице ${page}`);
+            
+            // Парсим данные каждого подарка
+            for (const giftUrl of giftUrls) {
+              const giftData = await this.parseGiftData(giftUrl);
+              
+              if (giftData) {
+                newGifts.push(giftData);
+                console.log(`Успешно спарсены данные подарка: ${giftData.name} #${giftData.id}`);
+              }
+            }
+            
+            // Делаем паузу между страницами, чтобы не нагружать сервер
+            if (page < pages) {
+              console.log(`Пауза перед парсингом следующей страницы...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
           }
         }
+      } else {
+        // Если коллекция указана, парсим только её
+        console.log(`Парсинг указанной коллекции: ${collection}`);
         
-        // Делаем паузу между страницами, чтобы не нагружать сервер
-        if (page < pages) {
-          console.log(`Пауза перед парсингом следующей страницы...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        // Парсим данные подарков с каждой страницы
+        for (let page = 1; page <= pages; page++) {
+          // Получаем список URL подарков для указанной коллекции
+          const giftUrls = await this.getGiftUrls(page, limit, collection);
+          console.log(`Получено ${giftUrls.length} URL подарков на странице ${page} для коллекции ${collection}`);
+          
+          // Парсим данные каждого подарка
+          for (const giftUrl of giftUrls) {
+            const giftData = await this.parseGiftData(giftUrl);
+            
+            if (giftData) {
+              newGifts.push(giftData);
+              console.log(`Успешно спарсены данные подарка: ${giftData.name} #${giftData.id} (коллекция: ${collection})`);
+            }
+          }
+          
+          // Если на странице нет подарков, прекращаем парсинг
+          if (giftUrls.length === 0 || giftUrls[0].includes('test')) {
+            console.log(`Больше нет подарков в коллекции ${collection}.`);
+            break;
+          }
+          
+          // Делаем паузу между страницами, чтобы не нагружать сервер
+          if (page < pages) {
+            console.log(`Пауза перед парсингом следующей страницы...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
         }
       }
       
@@ -369,12 +595,32 @@ class FragmentApiLight {
     const models = ['Moonstone', 'Obsidian', 'Ruby', 'Sapphire', 'Emerald'];
     const backgrounds = ['Fandango', 'Nebula', 'Aurora', 'Cosmos', 'Galaxy'];
     const symbols = ['Owl', 'Dragon', 'Phoenix', 'Lion', 'Eagle'];
+    const collections = ['Astral', 'Gems', 'Cosmic', 'Ethereal', 'Mystic'];
+    const statuses = ['for_sale', 'on_auction', 'for_sale', 'on_auction', 'for_sale'];
+    
+    // Анимированные GIF для тестовых подарков
+    const animatedImages = [
+      'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDdtY2JlNGt1a2JlbXd1NXd5NnBxbWR0ZnJ5Y2Nxb2JlcWFxaWppZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0HlQXlUKw6ljvHGg/giphy.gif',
+      'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDdtY2JlNGt1a2JlbXd1NXd5NnBxbWR0ZnJ5Y2Nxb2JlcWFxaWppZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0HlQXlUKw6ljvHGg/giphy.gif',
+      'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDdtY2JlNGt1a2JlbXd1NXd5NnBxbWR0ZnJ5Y2Nxb2JlcWFxaWppZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0HlQXlUKw6ljvHGg/giphy.gif',
+      'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDdtY2JlNGt1a2JlbXd1NXd5NnBxbWR0ZnJ5Y2Nxb2JlcWFxaWppZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0HlQXlUKw6ljvHGg/giphy.gif',
+      'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDdtY2JlNGt1a2JlbXd1NXd5NnBxbWR0ZnJ5Y2Nxb2JlcWFxaWppZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0HlQXlUKw6ljvHGg/giphy.gif'
+    ];
     
     for (let i = 0; i < 5; i++) {
+      // Генерируем случайную цену
+      const price = Math.floor(Math.random() * 10000) + 100;
+      
       testGifts.push({
         id: `${i + 1}`,
         name: giftNames[i],
         owner: owners[i],
+        collection: collections[i],
+        status: statuses[i],
+        price: {
+          amount: price.toString(),
+          currency: 'TON'
+        },
         model: {
           name: models[i],
           rarity: `${(Math.random() * 5).toFixed(1)}%`
@@ -389,6 +635,7 @@ class FragmentApiLight {
         },
         supply: `${Math.floor(Math.random() * 5000 + 1000)}/${Math.floor(Math.random() * 5000 + 6000)}`,
         image: `https://via.placeholder.com/300x300?text=${giftNames[i]}`,
+        animatedImage: animatedImages[i],
         url: `https://fragment.com/gift/test${i + 1}`
       });
     }
@@ -397,7 +644,10 @@ class FragmentApiLight {
     this.giftsData.gifts = testGifts;
     this.saveGiftsData();
     
-    console.log(`Создано ${testGifts.length} тестовых подарков`);
+    // Сохраняем список коллекций
+    this.collections = collections;
+    
+    console.log(`Создано ${testGifts.length} тестовых подарков в ${collections.length} коллекциях`);
   }
 
   /**
@@ -405,8 +655,9 @@ class FragmentApiLight {
    * @param {string} cronExpression - Выражение cron для планировщика
    * @param {number} pages - Количество страниц для парсинга
    * @param {number} limit - Количество подарков на странице
+   * @param {string} collection - Коллекция для фильтрации (опционально)
    */
-  startScheduler(cronExpression = '0 */6 * * *', pages = 5, limit = 20) {
+  startScheduler(cronExpression = '0 */6 * * *', pages = 5, limit = 20, collection = null) {
     console.log(`Запуск планировщика с выражением: ${cronExpression}`);
     
     // Создаем задачу cron
@@ -414,7 +665,7 @@ class FragmentApiLight {
       cronExpression,
       async () => {
         console.log(`Запуск запланированного парсинга данных: ${new Date().toISOString()}`);
-        await this.parseGifts(pages, limit);
+        await this.parseGifts(pages, limit, collection);
       },
       null,
       true,
@@ -426,7 +677,7 @@ class FragmentApiLight {
     console.log('Планировщик запущен');
     
     // Также запускаем парсинг сразу при старте
-    this.parseGifts(pages, limit);
+    this.parseGifts(pages, limit, collection);
   }
 
   /**

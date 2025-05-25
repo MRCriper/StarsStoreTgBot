@@ -547,6 +547,154 @@ main {
     margin-bottom: 15px;
     color: var(--fragment-primary);
     opacity: 0.7;
+/* Стили для статуса подарка */
+.gift-item.for-sale {
+    border-left: 3px solid #4CAF50;
+}
+
+.gift-item.on-auction {
+    border-left: 3px solid #FF9800;
+}
+
+.gift-status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+}
+
+.sale-badge, .auction-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+}
+
+.sale-badge {
+    background-color: #4CAF50;
+}
+
+.auction-badge {
+    background-color: #FF9800;
+}
+
+/* Стили для анимированных изображений */
+.gift-image.has-animation {
+    cursor: pointer;
+}
+
+.gift-image .static-image {
+    display: block;
+    z-index: 1;
+}
+
+.gift-image .animated-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    z-index: 2;
+    transition: opacity 0.3s;
+}
+
+.gift-image.show-animation .animated-image {
+    opacity: 1;
+}
+
+.gift-image.show-animation .static-image {
+    opacity: 0;
+}
+
+.gift-image .animated-image img.gif-animation,
+.gift-image .animated-image video.video-animation {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.animation-toggle {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.animation-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.animation-toggle i {
+    color: white;
+    font-size: 0.8rem;
+}
+
+/* Стили для фильтра коллекций */
+.collection-filter {
+    background-color: rgba(30, 30, 50, 0.7);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.collection-filter h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    color: var(--tg-theme-text-color);
+}
+
+.collection-filter-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.collection-filter-item {
+    background-color: rgba(20, 20, 40, 0.5);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.collection-filter-item:hover {
+    background-color: rgba(40, 40, 80, 0.7);
+}
+
+.collection-filter-item.active {
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+}
+
+.gift-collection {
+    display: inline-block;
+    background-color: rgba(20, 20, 40, 0.5);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    margin-left: 5px;
+}
+
+.gift-price {
+    margin-top: 5px;
+    font-weight: bold;
+    color: #4CAF50;
+}
 }
 
 .empty-gifts-message p {
