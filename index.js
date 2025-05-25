@@ -3,12 +3,17 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// Импортируем бота и контроллер Fragment API
+// Импортируем бота, контроллер Fragment API и парсер Fragment
 const bot = require('./bot');
 const FragmentController = require('./fragment-controller');
+const fragmentParser = require('./fragment-parser');
 
 // Создаем экземпляр контроллера Fragment API
 const fragmentController = new FragmentController();
+
+// Запускаем парсер Fragment с периодичностью обновления каждые 6 часов
+// Парсим первые 10 страниц по 20 подарков на каждой
+fragmentParser.startScheduler('0 */6 * * *', 10, 20);
 
 // Путь к файлу с данными рефералов
 const REFERRALS_DATA_PATH = path.join(__dirname, 'referrals-data.json');
@@ -405,6 +410,100 @@ app.get('/api/search-user', async (req, res) => {
       success: false, 
       error: 'Internal server error',
       error_code: 'SERVER_ERROR'
+    });
+  }
+});
+
+// API эндпоинты для доступа к данным парсера Fragment
+app.get('/api/fragment/gifts', (req, res) => {
+  try {
+    // Получаем данные подарков
+    const gifts = fragmentParser.getGifts();
+    const lastUpdated = fragmentParser.getLastUpdated();
+    
+    // Возвращаем данные
+    return res.json({
+      success: true,
+      gifts: gifts,
+      lastUpdated: lastUpdated
+    });
+  } catch (error) {
+    console.error('Ошибка при получении данных подарков:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+app.get('/api/fragment/gifts/:id', (req, res) => {
+  try {
+    // Получаем ID подарка из параметров запроса
+    const giftId = req.params.id;
+    
+    if (!giftId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Gift ID is required'
+      });
+    }
+    
+    // Получаем данные подарка
+    const gift = fragmentParser.getGiftById(giftId);
+    
+    if (!gift) {
+      return res.status(404).json({
+        success: false,
+        error: 'Gift not found'
+      });
+    }
+    
+    // Возвращаем данные
+    return res.json({
+      success: true,
+      gift: gift
+    });
+  } catch (error) {
+    console.error('Ошибка при получении данных подарка:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+app.post('/api/fragment/parse', async (req, res) => {
+  try {
+    // Проверяем, запущен ли уже парсинг
+    if (fragmentParser.isRunning) {
+      return res.status(409).json({
+        success: false,
+        error: 'Parsing is already running'
+      });
+    }
+    
+    // Получаем параметры из тела запроса
+    const { pages, limit } = req.body;
+    
+    // Запускаем парсинг
+    fragmentParser.parseGifts(pages || 5, limit || 20)
+      .then(result => {
+        console.log('Парсинг завершен:', result);
+      })
+      .catch(error => {
+        console.error('Ошибка при парсинге:', error);
+      });
+    
+    // Возвращаем успешный ответ
+    return res.json({
+      success: true,
+      message: 'Parsing started'
+    });
+  } catch (error) {
+    console.error('Ошибка при запуске парсинга:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
     });
   }
 });

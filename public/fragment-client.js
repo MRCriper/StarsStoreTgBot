@@ -1,12 +1,14 @@
 /**
- * Fragment API Client
+ * Fragment Client
  * 
- * Клиентская часть для работы с Fragment API через сервер
+ * Клиентская часть для работы с Fragment API и данными парсера
  */
 
 class FragmentClient {
   constructor() {
     this.apiBaseUrl = '/api/fragment'; // Базовый URL для API на сервере
+    this.gifts = []; // Кэш подарков
+    this.lastUpdated = null; // Время последнего обновления
   }
 
   /**
@@ -102,6 +104,91 @@ class FragmentClient {
       return result.transactions || [];
     } catch (error) {
       console.error('Ошибка при получении истории транзакций:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Получение списка подарков Fragment
+   * @returns {Promise<Array>} Список подарков
+   */
+  async getFragmentGifts() {
+    try {
+      // Если данные уже загружены и не устарели, возвращаем их из кэша
+      const cacheTime = 5 * 60 * 1000; // 5 минут
+      const now = new Date().getTime();
+      
+      if (this.gifts.length > 0 && this.lastUpdated && (now - this.lastUpdated) < cacheTime) {
+        return this.gifts;
+      }
+      
+      // Загружаем данные с сервера
+      const result = await this.sendRequest('gifts', {}, 'GET');
+      
+      if (result.success) {
+        this.gifts = result.gifts;
+        this.lastUpdated = now;
+      }
+      
+      return this.gifts;
+    } catch (error) {
+      console.error('Ошибка при получении списка подарков Fragment:', error);
+      
+      // В случае ошибки пытаемся загрузить данные из локального файла
+      try {
+        const response = await fetch('/fragment_gifts.json');
+        const data = await response.json();
+        return data.gifts || [];
+      } catch (fallbackError) {
+        console.error('Ошибка при загрузке локального файла подарков:', fallbackError);
+        return [];
+      }
+    }
+  }
+
+  /**
+   * Получение данных подарка по ID
+   * @param {string} id - ID подарка
+   * @returns {Promise<Object|null>} Данные подарка
+   */
+  async getFragmentGiftById(id) {
+    try {
+      // Если данные уже загружены, ищем подарок в кэше
+      if (this.gifts.length > 0) {
+        const gift = this.gifts.find(g => g.id === id);
+        if (gift) {
+          return gift;
+        }
+      }
+      
+      // Загружаем данные с сервера
+      const result = await this.sendRequest(`gifts/${id}`, {}, 'GET');
+      
+      if (result.success) {
+        return result.gift;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Ошибка при получении данных подарка ${id}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Запуск парсинга данных Fragment
+   * @param {number} pages - Количество страниц для парсинга
+   * @param {number} limit - Количество подарков на странице
+   * @returns {Promise<Object>} Результат операции
+   */
+  async startFragmentParsing(pages = 5, limit = 20) {
+    try {
+      return await this.sendRequest('parse', {
+        pages: pages,
+        limit: limit
+      });
+    } catch (error) {
+      console.error('Ошибка при запуске парсинга Fragment:', error);
       throw error;
     }
   }

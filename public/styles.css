@@ -12,6 +12,11 @@
     --accent-color: #4fc3f7; /* Голубой как на логотипе */
     --accent-dark: #3ab1e5;
     --star-color: #ffeb3b; /* Цвет звезды с логотипа */
+    
+    /* Fragment цвета */
+    --fragment-primary: #0088cc;
+    --fragment-secondary: #29b6f6;
+    --fragment-badge-bg: rgba(0, 136, 204, 0.2);
     --success-color: #06D6A0;
     --error-color: #EF476F;
     --border-radius: 16px;
@@ -498,6 +503,55 @@ main {
 
 .stars-input input {
     width: 200px;
+    
+/* ===== FRAGMENT STYLES ===== */
+.gift-details-preview {
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    color: var(--tg-theme-hint-color);
+}
+
+.gift-owner {
+    color: var(--fragment-primary);
+    font-weight: 500;
+}
+
+.gift-supply {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.rarity-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background-color: var(--fragment-badge-bg);
+    color: var(--fragment-primary);
+    font-size: 11px;
+    margin-left: 5px;
+}
+
+.empty-gifts-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--tg-theme-hint-color);
+    text-align: center;
+}
+
+.empty-gifts-message i {
+    font-size: 36px;
+    margin-bottom: 15px;
+    color: var(--fragment-primary);
+    opacity: 0.7;
+}
+
+.empty-gifts-message p {
+    font-size: 16px;
+}
     height: 54px;
     text-align: center;
     border: 2px solid var(--primary-color);
