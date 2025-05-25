@@ -3,17 +3,17 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// Импортируем бота, контроллер Fragment API и парсер Fragment
+// Импортируем бота, контроллер Fragment API и легкую версию парсера Fragment
 const bot = require('./bot');
 const FragmentController = require('./fragment-controller');
-const fragmentParser = require('./fragment-parser');
+const fragmentApiLight = require('./fragment-api-light');
 
 // Создаем экземпляр контроллера Fragment API
 const fragmentController = new FragmentController();
 
-// Запускаем парсер Fragment с периодичностью обновления каждые 6 часов
+// Запускаем легкую версию парсера Fragment с периодичностью обновления каждые 6 часов
 // Парсим первые 10 страниц по 20 подарков на каждой
-fragmentParser.startScheduler('0 */6 * * *', 10, 20);
+fragmentApiLight.startScheduler('0 */6 * * *', 10, 20);
 
 // Путь к файлу с данными рефералов
 const REFERRALS_DATA_PATH = path.join(__dirname, 'referrals-data.json');
@@ -418,8 +418,8 @@ app.get('/api/search-user', async (req, res) => {
 app.get('/api/fragment/gifts', (req, res) => {
   try {
     // Получаем данные подарков
-    const gifts = fragmentParser.getGifts();
-    const lastUpdated = fragmentParser.getLastUpdated();
+    const gifts = fragmentApiLight.getGifts();
+    const lastUpdated = fragmentApiLight.getLastUpdated();
     
     // Возвращаем данные
     return res.json({
@@ -449,7 +449,7 @@ app.get('/api/fragment/gifts/:id', (req, res) => {
     }
     
     // Получаем данные подарка
-    const gift = fragmentParser.getGiftById(giftId);
+    const gift = fragmentApiLight.getGiftById(giftId);
     
     if (!gift) {
       return res.status(404).json({
@@ -475,7 +475,7 @@ app.get('/api/fragment/gifts/:id', (req, res) => {
 app.post('/api/fragment/parse', async (req, res) => {
   try {
     // Проверяем, запущен ли уже парсинг
-    if (fragmentParser.isRunning) {
+    if (fragmentApiLight.isRunning) {
       return res.status(409).json({
         success: false,
         error: 'Parsing is already running'
@@ -486,7 +486,7 @@ app.post('/api/fragment/parse', async (req, res) => {
     const { pages, limit } = req.body;
     
     // Запускаем парсинг
-    fragmentParser.parseGifts(pages || 5, limit || 20)
+    fragmentApiLight.parseGifts(pages || 5, limit || 20)
       .then(result => {
         console.log('Парсинг завершен:', result);
       })
